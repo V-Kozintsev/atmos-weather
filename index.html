@@ -1,23 +1,37 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#121821" />
-    <meta name="takprodam-verification" content="37d60eb7-ec55-486d-8270-95074314acc4" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Atmos" />
-    <link rel="apple-touch-icon" href="./icons/apple-touch-180.png" />
-    <meta
-      name="description"
-      content="Atmos — погода и что надеть. Прогноз на час и неделю, мужские и женские образы под погоду."
-    />
-    <link rel="icon" type="image/png" href="./icons/pwa-192.png" />
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <title>Atmos — погода и что надеть</title>
-    <script type="module" crossorigin src="./assets/index-B25u8Ho8.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-Cc3Ug1VV.css">
-  <link rel="manifest" href="./manifest.webmanifest"></head>
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      /* These styles make the body full-height */
+      html,
+      body {
+        height: 100%;
+      }
+      /* These styles disable body scrolling if you are using <ScrollView> */
+      body {
+        overflow: hidden;
+      }
+      /* These styles make the root element full-height */
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+  <link rel="icon" href="/atmos-weather/favicon.ico"/><meta name="description" content="Прогноз погоды, мужские и женские образы на час или весь день."><meta name="theme-color" content="#f7f8f2"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Atmos"><link rel="apple-touch-icon" href="/atmos-weather/icons/apple-touch-180.png"><link rel="manifest" href="/atmos-weather/manifest.webmanifest"></head>
+
   <body>
+    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
+    <noscript>
+      Для работы Atmos включите JavaScript в браузере.
+    </noscript>
+    <!-- The root element for your Expo app. -->
     <div id="root"></div>
-  </body>
+  <script src="/atmos-weather/_expo/static/js/web/index-f96b5b44d2fdc921adbf443af96050b8.js" defer></script>
+</body>
 </html>
