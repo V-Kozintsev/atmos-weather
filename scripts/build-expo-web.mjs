@@ -1,0 +1,22 @@
+import { spawnSync } from "node:child_process";
+import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { generateSW } from "workbox-build";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const mobile = path.join(root, "mobile");
+const output = path.join(mobile, "dist-web");
+const base = (process.env.ATMOS_WEB_BASE_PATH || "").replace(/\/$/, "");
+const result = spawnSync(process.execPath, [path.join(mobile, "node_modules/expo/bin/cli"), "export", "--platform", "web", "--output-dir", "dist-web", "--max-workers", "2"], { cwd: mobile, stdio: "inherit", env: { ...process.env, CI: "1" } });
+if (result.status !== 0) process.exit(result.status || 1);
+await mkdir(path.join(output, "icons"), { recursive: true });
+for (const name of ["pwa-192.png", "pwa-512.png", "maskable-512.png", "apple-touch-180.png"]) await copyFile(path.join(root, "public/icons", name), path.join(output, "icons", name));
+await copyFile(path.join(root, "public/privacy.html"), path.join(output, "privacy.html"));
+await writeFile(path.join(output, "manifest.webmanifest"), JSON.stringify({ id: "./", name: "Atmos — погода и что надеть", short_name: "Atmos", description: "Погода и образы на ближайший час или весь день.", lang: "ru", start_url: "./", scope: "./", display: "standalone", theme_color: "#f7f8f2", background_color: "#f7f8f2", icons: [{ src: "icons/pwa-192.png", sizes: "192x192", type: "image/png", purpose: "any" }, { src: "icons/pwa-512.png", sizes: "512x512", type: "image/png", purpose: "any" }, { src: "icons/maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" }] }));
+let html = await readFile(path.join(output, "index.html"), "utf8");
+html = html.replace('<html lang="en">', '<html lang="ru">').replace('<title>Atmos</title>', '<title>Atmos — погода и что надеть</title>').replace('You need to enable JavaScript to run this app.', 'Для работы Atmos включите JavaScript в браузере.').replace('</head>', `<meta name="description" content="Прогноз погоды, мужские и женские образы на час или весь день."><meta name="theme-color" content="#f7f8f2"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Atmos"><link rel="apple-touch-icon" href="${base}/icons/apple-touch-180.png"><link rel="manifest" href="${base}/manifest.webmanifest"></head>`);
+await writeFile(path.join(output, "index.html"), html);
+const { count, size, warnings } = await generateSW({ globDirectory: output, globPatterns: ["**/*.{html,js,css,png,jpg,webp,ttf,ico,webmanifest}"], swDest: path.join(output, "sw.js"), maximumFileSizeToCacheInBytes: 8 * 1024 * 1024, navigateFallback: "index.html", navigateFallbackDenylist: [/\/privacy\.html$/], cleanupOutdatedCaches: true, skipWaiting: true, clientsClaim: true, runtimeCaching: [] });
+for (const warning of warnings) console.warn(`[Atmos Web] ${warning}`);
+console.info(`[Atmos Web] Expo/PWA: ${count} resources, ${Math.round(size / 1024)} KiB`);

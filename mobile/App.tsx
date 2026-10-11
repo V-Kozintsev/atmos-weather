@@ -13,6 +13,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -47,6 +48,8 @@ import { useReviews } from "./src/reviews";
 import { CityBackdrop, sceneModes, cityPhotoCredits, type SceneMode } from "./src/CityBackdrop";
 import { useCityPhoto } from "./src/cityPhotos";
 import { cityPhotoKey } from "./src/CityBackdrop";
+
+import { initialWebCity, legacyWebValue } from "./src/web";
 
 type Tab = "weather" | "outfit" | "settings";
 interface Preferences extends OutfitPreferences {
@@ -98,6 +101,7 @@ function Atmos(): React.JSX.Element {
   const [preferences, setPreferences] = useState(initial);
   const [hydrated, setHydrated] = useState(false);
   const [tab, setTab] = useState<Tab>("weather");
+  const wide = useWindowDimensions().width >= 1000;
   const [period, setPeriod] = useState<"hour" | "day">("hour");
   const [dayIndex, setDayIndex] = useState(0);
   const [searchVisible, setSearchVisible] = useState(false);
@@ -125,9 +129,9 @@ function Atmos(): React.JSX.Element {
     /** @returns {Promise<void>} Проверяет сохранённые настройки перед первым запросом прогноза. */
     async function restore(): Promise<void> {
       const [savedCity, savedPreferences, savedFavorites] = await Promise.all([
-        read<unknown>("atmos-native-city", CITIES[2]),
+        read<unknown>("atmos-native-city", initialWebCity() ?? CITIES[2]),
         read<Partial<Preferences> | null>("atmos-native-preferences", initial),
-        read<unknown>("atmos-native-favorites", []),
+        read<unknown>("atmos-native-favorites", legacyWebValue<unknown>("atmos-favorites", [])),
       ]);
       if (!alive) return;
       const saved =
@@ -156,7 +160,7 @@ function Atmos(): React.JSX.Element {
           ? savedFavorites.filter(isCity).slice(0, 20)
           : [],
       );
-      setCity(isCity(savedCity) ? savedCity : CITIES[2]);
+      setCity((Platform.OS === "web" ? initialWebCity(true) : undefined) ?? (isCity(savedCity) ? savedCity : CITIES[2]));
       setHydrated(true);
     }
     void restore();
@@ -325,7 +329,7 @@ function Atmos(): React.JSX.Element {
   return (
     <SafeAreaView style={s.safe} edges={["top", "left", "right", "bottom"]}>
       <StatusBar style="dark" />
-      <View style={s.header}>
+      <View style={[s.header, wide && s.bodyWide]}>
         <View style={{ flexShrink: 1 }}>
           <Text style={s.brand}>atmos.</Text>
           <Text style={s.caption}>Погода для ваших планов</Text>
@@ -345,7 +349,7 @@ function Atmos(): React.JSX.Element {
       <ScrollView
         key={`${tab}:${city?.id}`}
         style={s.flex}
-        contentContainerStyle={s.body}
+        contentContainerStyle={[s.body, tab === "weather" && wide && s.bodyWide]}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
@@ -384,6 +388,8 @@ function Atmos(): React.JSX.Element {
         )}
         {tab === "weather" && forecast && (
           <>
+            <View style={[s.columns, wide && s.columnsWide]}>
+            <View style={s.column}>
             <View style={s.hero}>
               {preferences.cityBackground && <CityBackdrop forecast={forecast} mode={preferences.sceneMode} photo={cityPhoto} />}
               <View style={s.row}>
@@ -434,6 +440,8 @@ function Atmos(): React.JSX.Element {
             {advice && (
               <OutfitCard advice={advice} gender={preferences.gender} occasion={preferences.occasion} period={period} evening={eveningHint} onPress={() => setTab("outfit")} />
             )}
+            </View>
+            <View style={s.column}>
             <Text style={s.title}>Ближайшие часы</Text>
             <ScrollView
               horizontal
@@ -475,6 +483,8 @@ function Atmos(): React.JSX.Element {
             <Text style={s.caption}>
               Выберите день — почасовой прогноз выше изменится.
             </Text>
+            </View>
+            </View>
             <View style={s.card}>
               <Text style={s.title}>Время для прогулки</Text>
               <Text style={s.subtitle}>
@@ -781,9 +791,10 @@ function Atmos(): React.JSX.Element {
               hour: "2-digit",
               minute: "2-digit",
             })}{" "}
-            · Потяните вниз для обновления
+            {Platform.OS !== "web" ? "· Потяните вниз для обновления" : ""}
           </Text>
         )}
+        {forecast && tab !== "settings" && Platform.OS === "web" && <Chip label={loading ? "Обновляем…" : "Обновить прогноз"} onPress={refresh} />}
         {tab === "weather" && reviews.visible && (
           <View style={s.card}>
             <Text style={s.subtitle}>Пару слов об Atmos?</Text>
@@ -842,7 +853,7 @@ function Atmos(): React.JSX.Element {
         onRequestClose={() => setSearchVisible(false)}
       >
         <SafeAreaView style={s.safe}>
-          <View style={s.header}>
+          <View style={[s.header, wide && s.bodyWide]}>
             <Text style={s.title}>Выбрать город</Text>
             <Pressable
               accessibilityRole="button"
@@ -864,7 +875,7 @@ function Atmos(): React.JSX.Element {
           />
           <ScrollView
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={s.body}
+            contentContainerStyle={[s.body, tab === "weather" && wide && s.bodyWide]}
           >
             {matches.map((value) => (
               <Pressable

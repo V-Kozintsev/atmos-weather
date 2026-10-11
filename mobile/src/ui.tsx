@@ -34,7 +34,12 @@ export const s = StyleSheet.create({
     width: "100%",
     alignSelf: "center",
   },
+  bodyWide: { maxWidth: 1080 },
+  columns: { gap: 16 },
+  columnsWide: { flexDirection: "row", alignItems: "flex-start" },
+  column: { flex: 1, minWidth: 0, gap: 16 },
   header: {
+    width: "100%", maxWidth: 680, alignSelf: "center",
     paddingHorizontal: 20,
     paddingVertical: 12,
     flexDirection: "row",
@@ -136,6 +141,7 @@ export const s = StyleSheet.create({
   outfitControls: { gap: 8 },
   model: { width: "100%", height: "100%" },
   nav: {
+    width: "100%", maxWidth: 680, alignSelf: "center",
     flexDirection: "row",
     backgroundColor: "#fff",
     paddingTop: 10,

@@ -25,7 +25,7 @@
 | Версия | Возможности |
 | :--- | :--- |
 | **[Android](https://www.rustore.ru/catalog/app/ru.puskweb.atmos)** | React Native / Expo: компактный интерфейс, виджет, увеличение фото и атмосферные фоны. Обновление 3.0 на модерации; в магазине доступна 2.2.1. |
-| **[Веб](https://v-kozintsev.github.io/atmos-weather/)** | Адаптивная погодная панель, графики и установка на главный экран через браузер. |
+| **[Веб](https://v-kozintsev.github.io/atmos-weather/)** | Тот же интерфейс React Native / Expo: две колонки на компьютере, мобильный вид на телефоне, установка на главный экран и обновления. |
 | **[Windows](https://github.com/V-Kozintsev/atmos-weather/releases/latest)** | Electron: мини-погода поверх окон, область уведомлений и обновления установщика. |
 
 iOS-приложение пока не опубликовано. На iPhone веб-версию можно добавить через Safari → «Поделиться» → «На экран Домой».
@@ -36,30 +36,30 @@ iOS-приложение пока не опубликовано. На iPhone в�
 
 ```sh
 npm ci
+npm --prefix mobile ci
 npm run dev
 ```
 
-Веб-версия откроется на `http://127.0.0.1:9000`.
+Веб-версия откроется на `http://127.0.0.1:9002`.
 
-Для мобильного интерфейса:
+Для Android-эмулятора или телефона:
 
 ```sh
-npm --prefix mobile ci
-npm run native:dev
+npm run native:android
 ```
 
-Локальный просмотр: `http://127.0.0.1:9002`. Android-эмулятор или телефон: `npm run native:android` — нужны Android Studio, Android SDK и совместимый JDK.
+Нужны Android Studio, Android SDK и совместимый JDK.
 
 ## Стек
 
 **React · React Native · Expo · TypeScript · Vite · Electron · PWA · SVG**
 
-Общая логика прогноза и подбора одежды находится в `src/lib`, мобильный интерфейс — в `mobile`.
+Веб и мобильное приложение используют общий интерфейс в `mobile`. Логика прогноза и одежды — в `src/lib`. После обновления `main` сайт публикуется автоматически; Android-обновления собираются отдельно и проходят модерацию магазина.
 
 <details>
 <summary><strong>Сборка и проверки</strong></summary>
 
-- Веб: `npm run build`; просмотр сборки: `npm run preview`.
+- Веб Expo/PWA: `npm run build:web`, результат — `mobile/dist-web`. Для GitHub Pages задайте `ATMOS_WEB_BASE_PATH=/atmos-weather`. Прежняя веб-сборка для Electron / Capacitor: `npm run build`; локальный запуск — `npm run dev:legacy`.
 - Проверки: `npm test`, `npm run typecheck`, `npm run native:typecheck`.
 - Windows: `npm run desktop`; установщик и portable: `npm run desktop:build`.
 - Android: `npm --prefix mobile run prebuild:android`, затем `npm --prefix mobile run build:android`.

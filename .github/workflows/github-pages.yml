@@ -18,9 +18,12 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: npm --prefix mobile ci
       - run: npm test
-      - run: npm run build
+      - run: npm run build:web
+        env:
+          ATMOS_WEB_BASE_PATH: /atmos-weather
       - uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
+          publish_dir: ./mobile/dist-web
