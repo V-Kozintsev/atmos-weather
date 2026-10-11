@@ -7,8 +7,8 @@ export default defineConfig({
     registerType: "prompt",
     includeAssets: ["favicon.svg", "icons/*.png"],
     manifest: {
-      id: "./", name: "Atmos — погода в деталях", short_name: "Atmos",
-      description: "Погода, качество воздуха и лучшее время для ваших планов.",
+      id: "./", name: "Atmos — погода и что надеть", short_name: "Atmos",
+      description: "Прогноз погоды и мужские / женские образы на час или весь день.",
       lang: "ru", start_url: "./", scope: "./", display: "standalone",
       theme_color: "#121821", background_color: "#121821",
       icons: [
@@ -18,7 +18,7 @@ export default defineConfig({
       ],
     },
     workbox: {
-      globPatterns: ["**/*.{js,css,html,woff2,json}", "outfits/*.webp"],
+      globPatterns: ["**/*.{js,css,html,woff2,json}", "outfits/*.webp", "assets/*.png"],
       navigateFallback: "index.html",
       cleanupOutdatedCaches: true,
       runtimeCaching: [],

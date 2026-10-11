@@ -4,6 +4,14 @@ import { defaultOutfitPreferences, outfitForDay, outfitForHour, type OutfitOccas
 import type { Day, Hour } from "../lib/weather";
 import { readStorage, saveStorage } from "../lib/api";
 import "./OutfitCard.css";
+import womanWarm from "../../mobile/assets/woman-warm-v2.png";
+import womanMild from "../../mobile/assets/woman-mild-v2.png";
+import womanCool from "../../mobile/assets/woman-cool-v2.png";
+import womanCold from "../../mobile/assets/woman-cold-v2.png";
+import womanRain from "../../mobile/assets/woman-rain-v2.png";
+import womanSport from "../../mobile/assets/woman-sport-v2.png";
+
+const womanPhotos: Record<string, string> = { warm: womanWarm, mild: womanMild, cool: womanCool, cold: womanCold, rain: womanRain, sport: womanSport };
 
 interface Props {
   hour: Hour;
@@ -28,6 +36,8 @@ export default function OutfitCard({ hour, day, remainingHours, hourLabel }: Pro
   const advice = mode === "hour" ? outfitForHour(hour, { ...preferences, gender }) : outfitForDay(day, remainingHours, hour, { ...preferences, gender });
   const bottomStyle = advice.style === "heat" || advice.style === "warm" ? "warm" : advice.style === "mild" ? "mild" : advice.style === "cool" ? "cool" : "cold";
   const topStyle = advice.rain && (advice.style === "mild" || advice.style === "cool") ? "rain" : bottomStyle;
+  const womanStyle = preferences.occasion === "sport" && ["heat", "warm"].includes(advice.style) && !advice.rain ? "sport" : topStyle;
+  const modelSource = gender === "woman" ? womanPhotos[womanStyle] : `${import.meta.env.BASE_URL}outfits/man-${bottomStyle}.webp`;
   const shoppingPieces = [
     { id: "upper", label: "Верх", name: advice.pieces.upper },
     ...(advice.pieces.outer ? [{ id: "outer", label: "Слой", name: advice.pieces.outer }] : []),
@@ -60,8 +70,8 @@ export default function OutfitCard({ hour, day, remainingHours, hourLabel }: Pro
     <section className="outfit-card" aria-labelledby="outfit-heading">
       <div className="outfit-visual" aria-hidden="true">
         <span className="outfit-halo" />
-        <img className="outfit-model" src={`${import.meta.env.BASE_URL}outfits/${gender}-${bottomStyle}.webp`} alt="" width="480" height="720" />
-        {topStyle !== bottomStyle && <img className="outfit-model outfit-model-top" src={`${import.meta.env.BASE_URL}outfits/${gender}-${topStyle}.webp`} alt="" width="480" height="720" />}
+        <img className="outfit-model" src={modelSource} alt="" width="480" height="720" />
+        {gender === "man" && topStyle !== bottomStyle && <img className="outfit-model outfit-model-top" src={`${import.meta.env.BASE_URL}outfits/${gender}-${topStyle}.webp`} alt="" width="480" height="720" />}
         {advice.rain && (advice.feels <= 0
           ? <CloudSnow className="outfit-weather-icon" size={30} strokeWidth={1.5} />
           : <CloudRain className="outfit-weather-icon" size={30} strokeWidth={1.5} />)}
