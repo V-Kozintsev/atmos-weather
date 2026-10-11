@@ -25,7 +25,7 @@ export default function OutfitCard({ hour, day, remainingHours, hourLabel }: Pro
       warmth: saved.warmth === "warmer" || saved.warmth === "lighter" ? saved.warmth : "balanced",
     };
   });
-  const advice = mode === "hour" ? outfitForHour(hour, preferences) : outfitForDay(day, remainingHours, hour, preferences);
+  const advice = mode === "hour" ? outfitForHour(hour, { ...preferences, gender }) : outfitForDay(day, remainingHours, hour, { ...preferences, gender });
   const bottomStyle = advice.style === "heat" || advice.style === "warm" ? "warm" : advice.style === "mild" ? "mild" : advice.style === "cool" ? "cool" : "cold";
   const topStyle = advice.rain && (advice.style === "mild" || advice.style === "cool") ? "rain" : bottomStyle;
   const shoppingPieces = [

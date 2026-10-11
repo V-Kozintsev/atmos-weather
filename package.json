@@ -15,7 +15,10 @@
     "test": "vitest run",
     "mobile:sync": "npm run build && cap sync",
     "desktop": "npm run build && electron .",
-    "desktop:build": "npm run build && electron-builder --win nsis portable --x64 --publish never"
+    "desktop:build": "npm run build && electron-builder --win nsis portable --x64 --publish never",
+    "native:dev": "npm --prefix mobile run web -- --port 9002 --localhost",
+    "native:android": "npm --prefix mobile run android",
+    "native:typecheck": "npm --prefix mobile run typecheck"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

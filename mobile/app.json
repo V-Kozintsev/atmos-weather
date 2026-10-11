@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "Atmos",
+    "slug": "atmos-weather",
+    "version": "3.0.0",
+    "orientation": "default",
+    "icon": "./assets/icon-v2.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "bundleIdentifier": "ru.puskweb.atmos",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "ru.puskweb.atmos",
+      "versionCode": 4,
+      "adaptiveIcon": {
+        "backgroundColor": "#163c49",
+        "foregroundImage": "./assets/foreground-v2.png"
+      },
+      "blockedPermissions": [
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/icon-v2.png"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Atmos использует ваше местоположение только по нажатию для прогноза погоды. Фоновое отслеживание не используется."
+        }
+      ],
+      "expo-asset",
+      "expo-font",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "AtmosWeather",
+              "label": "Atmos · погода и одежда",
+              "description": "Температура и что надеть для выбранного города",
+              "minWidth": "180dp",
+              "minHeight": "120dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ],
+      "./plugins/withAtmosAndroid"
+    ]
+  }
+}

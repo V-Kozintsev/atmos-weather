@@ -34,7 +34,6 @@ import WeatherIcon from "./components/WeatherIcon";
 import {
   bestHour,
   CITIES,
-  cityFromUrl,
   clock,
   condition,
   isCity,
@@ -45,6 +44,7 @@ import {
 } from "./lib/weather";
 import { readStorage, saveStorage } from "./lib/api";
 import { useWeather } from "./lib/useWeather";
+import { cityFromUrl } from "./lib/cityFromUrl";
 
 const nativeMobile = Capacitor.isNativePlatform();
 

@@ -5,6 +5,7 @@ export type OutfitOccasion = "casual" | "office" | "sport";
 export type WarmthPreference = "balanced" | "warmer" | "lighter";
 
 export interface OutfitPreferences {
+  gender?: "woman" | "man";
   occasion: OutfitOccasion;
   warmth: WarmthPreference;
 }
@@ -57,6 +58,33 @@ const wardrobes: Record<OutfitOccasion, Record<OutfitStyle, Omit<OutfitPieces, "
   },
 };
 
+const womensWardrobes: typeof wardrobes = {
+  casual: {
+    heat: { upper: "Лёгкая блуза", lower: "Льняная юбка миди", shoes: "Сандалии на плоской подошве" },
+    warm: { upper: "Блуза с коротким рукавом", lower: "Юбка миди", shoes: "Лёгкие кеды" },
+    mild: { upper: "Блуза", outer: "Кардиган", lower: "Брюки с высокой посадкой", shoes: "Лоферы" },
+    cool: { upper: "Трикотажный джемпер", outer: "Пальто с поясом", lower: "Плотные брюки", shoes: "Ботильоны без каблука" },
+    cold: { upper: "Тёплый джемпер", outer: "Утеплённое пальто", lower: "Тёплые брюки", shoes: "Утеплённые ботинки" },
+    frost: { upper: "Термослой и джемпер", outer: "Длинный зимний пуховик", lower: "Утеплённые брюки", shoes: "Зимние ботинки" },
+  },
+  office: {
+    heat: { upper: "Льняная блуза", lower: "Лёгкая юбка миди", shoes: "Лоферы" },
+    warm: { upper: "Блуза", lower: "Юбка миди", shoes: "Лоферы" },
+    mild: { upper: "Блуза", outer: "Приталенный жакет", lower: "Классические брюки", shoes: "Закрытые лоферы" },
+    cool: { upper: "Блуза и джемпер", outer: "Пальто с поясом", lower: "Плотные классические брюки", shoes: "Ботильоны без каблука" },
+    cold: { upper: "Блуза и тёплый джемпер", outer: "Утеплённое пальто", lower: "Тёплые классические брюки", shoes: "Утеплённые ботильоны" },
+    frost: { upper: "Термослой и джемпер", outer: "Длинное зимнее пальто", lower: "Утеплённые брюки", shoes: "Зимние ботинки" },
+  },
+  sport: {
+    heat: { upper: "Лёгкий спортивный топ свободного кроя", lower: "Спортивные шорты", shoes: "Дышащие беговые кроссовки" },
+    warm: { upper: "Спортивная футболка женского кроя", lower: "Лёгкие джоггеры", shoes: "Беговые кроссовки" },
+    mild: { upper: "Спортивный лонгслив", outer: "Лёгкая ветровка женского кроя", lower: "Джоггеры", shoes: "Беговые кроссовки" },
+    cool: { upper: "Термолонгслив", outer: "Ветрозащитная куртка женского кроя", lower: "Плотные джоггеры", shoes: "Закрытые беговые кроссовки" },
+    cold: { upper: "Термослой", outer: "Утеплённая спортивная куртка женского кроя", lower: "Тёплые джоггеры", shoes: "Утеплённые кроссовки" },
+    frost: { upper: "Термослой и флисовая кофта", outer: "Зимняя спортивная куртка женского кроя", lower: "Утеплённые спортивные брюки", shoes: "Зимняя спортивная обувь" },
+  },
+};
+
 /** @param {number} code - Код погоды. @returns {boolean} Дождь, снег или гроза. */
 function hasPrecipitation(code: number): boolean {
   return (code >= 51 && code <= 86) || code >= 95;
@@ -83,7 +111,12 @@ function buildOutfit(feels: number, wind: number, rain: boolean, note: string, p
   else if (comfort >= 7) { style = "cool"; title = "Пора утеплиться"; }
   else if (comfort >= -3) { style = "cold"; title = "Тёплые слои"; }
   else { style = "frost"; title = "Защита от холода"; }
-  const pieces: OutfitPieces = { ...wardrobes[preferences.occasion][style], accessories: [] };
+  const wardrobe = preferences.gender === "woman" ? womensWardrobes : wardrobes;
+  const pieces: OutfitPieces = { ...wardrobe[preferences.occasion][style], accessories: [] };
+  if (rain && preferences.gender === "woman" && preferences.occasion !== "sport" && ["mild", "cool"].includes(style)) {
+    pieces.outer = "Непромокаемый плащ с поясом";
+    pieces.shoes = "Непромокаемые ботинки";
+  }
   if (style === "cold") pieces.accessories.push("Шапка");
   if (style === "frost") pieces.accessories.push("Шапка и перчатки");
   if (rain) pieces.accessories.push(feels <= 0 ? "Непромокаемая обувь" : preferences.occasion === "sport" ? "Защита от дождя" : "Зонт или дождевик");

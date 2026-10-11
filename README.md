@@ -1,6 +1,6 @@
 # Atmos — погода в деталях
 
-[Открыть приложение →](https://v-kozintsev.github.io/atmos-weather/)
+[Android в RuStore](https://www.rustore.ru/catalog/app/ru.puskweb.atmos) · [Открыть веб-версию →](https://v-kozintsev.github.io/atmos-weather/)
 
 [Скачать для Windows](https://github.com/V-Kozintsev/atmos-weather/releases/latest/download/Atmos-Setup-x64.exe) · [Без установки](https://github.com/V-Kozintsev/atmos-weather/releases/latest/download/Atmos-Portable-x64.exe)
 
@@ -15,9 +15,9 @@
 - Адаптивный интерфейс, локальные шрифты, доступные состояния и поддержка reduced motion.
 - Устанавливаемое PWA: отдельное окно, иконка приложения, офлайн-интерфейс и проверка обновлений при возвращении и раз в час.
 - Windows-приложение на Electron: локальный интерфейс, сворачивание в область уведомлений, мини-погода поверх окон, текущая температура в подсказке значка и обновление установленной версии через GitHub Releases.
-- Мобильные проекты Android и iOS на Capacitor: тот же интерфейс и геолокация по нажатию через системное разрешение.
+- Мобильная версия 3.0 на React Native / Expo в `mobile/`: компактный интерфейс, Android-виджет погоды и одежды, отдельные мужские и женские образы, увеличение фото жестами, настраиваемое напоминание об оценке и атмосферные фоны городов. Геолокация — по нажатию через системное разрешение. Android-версия 2.2.1 опубликована в RuStore; обновление 3.0 отправлено на модерацию. Публикации iOS пока нет.
 
-**React · TypeScript · Vite · PWA / Workbox · SVG · REST API · Vitest**
+**React · React Native · Expo · TypeScript · Vite · Electron · PWA / Workbox · SVG · REST API · Vitest**
 
 ## Как установить
 
@@ -35,7 +35,9 @@ Node.js 22.18+ или 24+. Установка: `npm ci`. Разработка: `
 
 Windows-приложение: `npm run desktop`; установщик и portable EXE: `npm run desktop:build`. В оболочке отключён доступ веб-интерфейса к Node.js; локальные файлы загружаются через ограниченный протокол, внешние HTTPS-ссылки открываются в браузере. Город в desktop-версии выбирается через поиск и избранное.
 
-Мобильные проекты: `npm run mobile:sync` обновляет веб-ресурсы в `android/` и `ios/`. Android открывается через `npx cap open android`, iOS — через `npx cap open ios` на Mac с Xcode. Для локальной проверки Android можно собрать debug APK командой `cd android && ./gradlew assembleDebug`. Публикация в магазинах требует отдельной подписи, аккаунтов разработчика и проверки на устройствах.
+Мобильная версия: после `npm ci` в корне выполните `npm --prefix mobile ci`. `npm run native:dev` запускает локальный просмотр на порту 9002; `npm run native:android` собирает отдельное тестовое приложение `ru.puskweb.atmos.dev` для Android-эмулятора или телефона. Нужны Android Studio / Android SDK и совместимый JDK. Проверка типов: `npm run native:typecheck`. Для iOS нужен Mac с Xcode; запуск — `npm --prefix mobile run ios`.
+
+Релиз Android использует прежний пакет `ru.puskweb.atmos` и существующий ключ подписи: значения `ATMOS_KEYSTORE`, `ATMOS_STORE_PASSWORD`, `ATMOS_KEY_ALIAS`, `ATMOS_KEY_PASSWORD` передаются через окружение. Ключи и пароли не хранятся в репозитории. Нативные папки создаются через Expo prebuild. Старые проекты Capacitor сохраняются для совместимости: `npm run mobile:sync` обновляет их веб-ресурсы, но не собирает новую версию React Native.
 
 Диагностика оболочки: запуск `Atmos.exe --diagnostics`. Префикс `[Atmos Desktop]`; пользовательские данные не выводятся. Аргумент `--background` запускает приложение сразу в области уведомлений. Windows-сборки публикуются из тегов `v*` через GitHub Actions.
 
