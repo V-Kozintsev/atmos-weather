@@ -1,16 +1,17 @@
 import { cityFromUrl } from "../../src/lib/cityFromUrl";
 import { isCity, type City } from "../../src/lib/weather";
+import { Platform } from "react-native";
 
 /** @param {string} key - Ключ прежней веб-версии. @param {T} fallback - Значение по умолчанию. @returns {T} Сохранённые данные без удаления старых настроек. */
 export function legacyWebValue<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
+  if (Platform.OS !== "web" || typeof window === "undefined") return fallback;
   try { return JSON.parse(window.localStorage.getItem(key) || "null") ?? fallback; }
   catch { return fallback; }
 }
 
 /** @param {boolean} linkedOnly - Учитывать только явную ссылку. @returns {City | undefined} Город из ссылки или прежнего веб-интерфейса. */
 export function initialWebCity(linkedOnly = false): City | undefined {
-  if (typeof window === "undefined") return undefined;
+  if (Platform.OS !== "web" || typeof window === "undefined" || typeof location === "undefined") return undefined;
   const linked = cityFromUrl();
   if (linkedOnly) return linked;
   const saved = legacyWebValue<unknown>("atmos-city", undefined);
@@ -19,7 +20,7 @@ export function initialWebCity(linkedOnly = false): City | undefined {
 
 /** @returns {void} Подключает офлайн-интерфейс и проверяет обновления при возвращении и раз в час. */
 export function registerWebUpdates(): void {
-  if (__DEV__ || typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+  if (Platform.OS !== "web" || __DEV__ || typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
   const controlled = !!navigator.serviceWorker.controller;
   let reloading = false;
   /** @returns {void} Перезагружает работающий интерфейс после активации новой версии. */
