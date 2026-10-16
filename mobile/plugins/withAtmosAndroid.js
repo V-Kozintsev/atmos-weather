@@ -1,7 +1,23 @@
-const { withAppBuildGradle } = require("expo/config-plugins");
+const { withAppBuildGradle, withProjectBuildGradle } = require("expo/config-plugins");
 
 /** @param {object} config - Конфигурация Expo. @returns {object} Android с отдельным тестовым приложением и обязательной подписью релиза. */
 module.exports = function withAtmosAndroid(config) {
+  config = withProjectBuildGradle(config, (mod) => {
+    const repository = "https://nexus-external.rustore.ru/repository/maven-rustore-exposed";
+    if (!mod.modResults.contents.includes(repository)) {
+      mod.modResults.contents += `
+allprojects {
+    repositories {
+        maven {
+            url '${repository}'
+            content { includeGroupByRegex 'ru[.]rustore[.].*' }
+        }
+    }
+}
+`;
+    }
+    return mod;
+  });
   return withAppBuildGradle(config, (mod) => {
     const marker = "// Atmos Android release configuration";
     if (!mod.modResults.contents.includes(marker)) {
