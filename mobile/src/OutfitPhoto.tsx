@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { Animated, Image, Modal, PanResponder, Pressable, StyleSheet, Text, View, type GestureResponderEvent, type ImageSourcePropType, type LayoutChangeEvent } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -93,8 +94,8 @@ function PhotoLightbox({ source, onClose }: { source: ImageSourcePropType; onClo
   );
 }
 
-/** @param {object} props - Фото выбранного комплекта. @returns {React.JSX.Element} Нажимаемое превью и просмотр на весь экран. */
-export function OutfitPhoto({ source }: { source: ImageSourcePropType }): React.JSX.Element {
+/** @param {object} props - Фото, оформление, доступное описание и содержимое карточки. @returns {React.JSX.Element} Нажимаемое превью и просмотр на весь экран. */
+export function OutfitPhoto({ source, editorial = false, height, description, children }: { source: ImageSourcePropType; editorial?: boolean; height?: number; description?: string; children?: ReactNode }): React.JSX.Element {
   const [visible, setVisible] = useState(false);
   /** @returns {void} Открывает фотографию с исходным масштабом. */
   function openPhoto(): void { setVisible(true); }
@@ -102,9 +103,10 @@ export function OutfitPhoto({ source }: { source: ImageSourcePropType }): React.
   function closePhoto(): void { setVisible(false); }
   return (
     <>
-      <Pressable accessibilityRole="button" accessibilityLabel="Открыть фото образа" accessibilityHint="Полноэкранный просмотр с приближением двумя пальцами" onPress={openPhoto} style={s.photo}>
-        <Image source={source} style={s.model} resizeMode="contain" />
-        <View pointerEvents="none" style={styles.badge}><Ionicons name="expand-outline" size={18} color="#21483e" /><Text style={s.caption}>Рассмотреть</Text></View>
+      <Pressable accessibilityRole="button" accessibilityLabel={description ? `${description}. Открыть фото образа` : "Открыть фото образа"} accessibilityHint="Полноэкранный просмотр с приближением двумя пальцами" onPress={openPhoto} style={[s.photo, editorial && styles.editorial, height !== undefined && { height }]}>
+        <Image source={source} style={[s.model, editorial && styles.editorialModel]} resizeMode="contain" />
+        {children}
+        <View pointerEvents="none" style={[styles.badge, editorial && styles.editorialBadge]}><Ionicons name="expand-outline" size={16} color="#21483e" /><Text style={[s.caption, editorial && styles.badgeText]}>Рассмотреть</Text></View>
       </Pressable>
       <Modal visible={visible} animationType="fade" onRequestClose={closePhoto}>{visible && <PhotoLightbox source={source} onClose={closePhoto} />}</Modal>
     </>
@@ -112,6 +114,10 @@ export function OutfitPhoto({ source }: { source: ImageSourcePropType }): React.
 }
 
 const styles = StyleSheet.create({
+  editorial: { backgroundColor: "#e8e9dc", borderRadius: 18 },
+  editorialModel: { position: "absolute", right: -2, top: 16, width: "64%", height: "94%" },
+  editorialBadge: { top: 8, bottom: undefined, right: 8, backgroundColor: "#f7f8f2d9", paddingVertical: 5, paddingHorizontal: 7 },
+  badgeText: { fontSize: 11, lineHeight: 16, color: "#21483e" },
   screen: { flex: 1, backgroundColor: "#142d31" },
   header: { paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   heading: { color: "#f3f6ee" },

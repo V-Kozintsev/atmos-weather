@@ -41,8 +41,7 @@ import { searchCities, setDiagnostics, log } from "./src/weather";
 import { Chip, s } from "./src/ui";
 import { WeatherIcon } from "./src/WeatherIcon";
 import { OutfitCard } from "./src/OutfitCard";
-import { OutfitPhoto } from "./src/OutfitPhoto";
-import { OutfitDetails } from "./src/OutfitDetails";
+import { OutfitScreen } from "./src/OutfitScreen";
 import { pinWidget, syncWidgets } from "./src/widget";
 import { useReviews, reviewUrl } from "./src/reviews";
 import { useAppUpdates } from "./src/useAppUpdates";
@@ -337,8 +336,8 @@ function Atmos(): React.JSX.Element {
       <StatusBar style="dark" />
       <View style={[s.header, wide && s.bodyWide, compactWeather && s.headerCompact]}>
         <View style={{ flexShrink: 1 }}>
-          <Text style={s.brand}>{appName}</Text>
-          {!compactWeather && <Text style={s.caption}>Прогноз на каждый день</Text>}
+          <Text style={tab === "outfit" ? s.outfitPageTitle : s.brand}>{tab === "outfit" ? "Что надеть" : appName}</Text>
+          {!compactWeather && tab !== "outfit" && <Text style={s.caption}>Прогноз на каждый день</Text>}
         </View>
         <Pressable
           accessibilityRole="button"
@@ -355,7 +354,7 @@ function Atmos(): React.JSX.Element {
       <ScrollView
         key={`${tab}:${city?.id}`}
         style={s.flex}
-        contentContainerStyle={[s.body, tab === "weather" && wide && s.bodyWide, compactWeather && s.weatherBodyCompact]}
+        contentContainerStyle={[s.body, tab === "weather" && wide && s.bodyWide, compactWeather && s.weatherBodyCompact, tab === "outfit" && s.outfitBody]}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
@@ -519,41 +518,8 @@ function Atmos(): React.JSX.Element {
             <Chip label="Поделиться прогнозом" onPress={() => void share()} />
           </>
         )}
-        {tab === "outfit" && advice && (
-          <>
-            <View style={s.outfitHeading}>
-              <Text style={s.title}>Ваш образ по погоде</Text>
-              <Text style={s.caption}>На ближайший час или весь день.</Text>
-            </View>
-            <View style={s.outfitControls}>
-            <View style={s.wrap}>
-              <Chip
-                label="Ближайший час"
-                active={period === "hour"}
-                onPress={() => setPeriod("hour")}
-              />
-              <Chip
-                label="На весь день"
-                active={period === "day"}
-                onPress={() => setPeriod("day")}
-              />
-            </View>
-            <View style={s.wrap}>
-              <Chip
-                label="Женский"
-                active={preferences.gender === "woman"}
-                onPress={() => update({ gender: "woman" })}
-              />
-              <Chip
-                label="Мужской"
-                active={preferences.gender === "man"}
-                onPress={() => update({ gender: "man" })}
-              />
-            </View>
-            </View>
-            <OutfitPhoto source={outfitImage} />
-            <OutfitDetails advice={advice} />
-            <Text style={s.title}>Подстроить под себя</Text>
+        {tab === "outfit" && advice && forecast && (
+          <OutfitScreen forecast={forecast} advice={advice} source={outfitImage} period={period} gender={preferences.gender} occasion={preferences.occasion} fahrenheit={preferences.fahrenheit} eveningHour={eveningHour} eveningHint={eveningHint} onPeriodChange={setPeriod} onGenderChange={(gender) => update({ gender })}>
             <View style={s.wrap}>
               {(
                 [
@@ -615,7 +581,7 @@ function Atmos(): React.JSX.Element {
                 </View>
               ))}
             </View>
-          </>
+          </OutfitScreen>
         )}
         {tab === "settings" && (
           <>

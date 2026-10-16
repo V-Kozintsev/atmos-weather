@@ -35,6 +35,8 @@ export const s = StyleSheet.create({
     alignSelf: "center",
   },
   bodyWide: { maxWidth: 1080 },
+  outfitBody: { paddingHorizontal: 12, paddingTop: 4, paddingBottom: 16 },
+  outfitPageTitle: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", fontSize: 29, lineHeight: 36, fontWeight: "600", color: "#21483e" },
   weatherBodyCompact: { paddingTop: 8, gap: 12 },
   weatherSpacingCompact: { gap: 12 },
   columns: { gap: 16 },
@@ -147,8 +149,6 @@ export const s = StyleSheet.create({
     borderRadius: 24,
     overflow: "hidden",
   },
-  outfitHeading: { gap: 4 },
-  outfitControls: { gap: 8 },
   model: { width: "100%", height: "100%" },
   nav: {
     width: "100%", maxWidth: 680, alignSelf: "center",
