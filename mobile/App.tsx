@@ -44,7 +44,9 @@ import { OutfitCard } from "./src/OutfitCard";
 import { OutfitPhoto } from "./src/OutfitPhoto";
 import { OutfitDetails } from "./src/OutfitDetails";
 import { pinWidget, syncWidgets } from "./src/widget";
-import { useReviews } from "./src/reviews";
+import { useReviews, reviewUrl } from "./src/reviews";
+import { useAppUpdates, appVersion } from "./src/useAppUpdates";
+import { UpdateCard } from "./src/UpdateCard";
 import { CityBackdrop, sceneModes, cityPhotoCredits, type SceneMode } from "./src/CityBackdrop";
 import { useCityPhoto } from "./src/cityPhotos";
 import { cityPhotoKey } from "./src/CityBackdrop";
@@ -110,6 +112,7 @@ function Atmos(): React.JSX.Element {
   const [notice, setNotice] = useState("");
   const { forecast, loading, stale, error, refresh } = useForecast(city);
   const cityPhoto = useCityPhoto(city, preferences.cityBackground && !!city && !cityPhotoKey(city));
+  const updates = useAppUpdates(hydrated);
   const reviews = useReviews(!!forecast && !stale && !loading);
   useEffect(() => {
     if (forecast && hydrated) void syncWidgets(forecast, preferences, stale);
@@ -359,6 +362,7 @@ function Atmos(): React.JSX.Element {
           />
         }
       >
+        <UpdateCard state={updates.state} onUpdate={() => void updates.update()} onDismiss={() => void updates.dismiss()} onStore={() => void openLink(reviewUrl)} />
         {notice ? (
           <View style={s.notice}>
             <Text accessibilityRole="alert" style={s.text}>
@@ -610,6 +614,11 @@ function Atmos(): React.JSX.Element {
         {tab === "settings" && (
           <>
             <Text style={s.title}>Всё под вас</Text>
+            {Platform.OS === "android" && <View style={s.card}>
+              <Text style={s.subtitle}>Обновления Atmos</Text>
+              <Text style={s.caption}>Версия {appVersion}. Проверяем обновления при запуске. Установить их можно прямо в приложении.</Text>
+              <Chip label={updates.busy ? "Проверяем обновление…" : "Проверить обновления"} onPress={() => void updates.check(true)} />
+            </View>}
             <View style={s.card}>
               <View style={s.row}>
                 <Text style={[s.subtitle, s.flex]}>Атмосферный фон</Text>

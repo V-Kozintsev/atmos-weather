@@ -1,6 +1,6 @@
 {
   "name": "atmos-mobile",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "main": "index.ts",
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
@@ -15,6 +15,7 @@
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
     "react-native-android-widget": "^0.22.1",
+    "react-native-rustore-update": "https://codeload.github.com/rustore-dev/react-native-rustore-update-sdk/tar.gz/9fd466c00d5b728aa8f3099086bc6b8a4984e6c0",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-svg": "15.15.4",
     "react-native-web": "^0.21.2",
