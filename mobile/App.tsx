@@ -106,7 +106,7 @@ function Atmos(): React.JSX.Element {
   const [tab, setTab] = useState<Tab>("weather");
   const viewport = useWindowDimensions();
   const wide = viewport.width >= 1000 || (viewport.width >= 600 && viewport.width > viewport.height);
-  const compactWeather = tab === "weather" && viewport.width < 600 && viewport.height < 900 && viewport.fontScale <= 1.15;
+  const compactWeather = tab === "weather" && viewport.width < 600 && viewport.height < 1000 && viewport.fontScale <= 1.15;
   const [period, setPeriod] = useState<"hour" | "day">("hour");
   const [dayIndex, setDayIndex] = useState(0);
   const [searchVisible, setSearchVisible] = useState(false);
