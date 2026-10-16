@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View, type PressableStateCallbackType, type StyleProp, type ViewStyle } from "react-native";
+import { Pressable, StyleSheet, View, type PressableStateCallbackType, type StyleProp, type ViewStyle } from "react-native";
+import { Text } from "./typography";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import type { OutfitAdvice, OutfitOccasion } from "../../src/lib/outfit";

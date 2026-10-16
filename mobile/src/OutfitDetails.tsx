@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { Text, fontNames } from "./typography";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import type { OutfitAdvice, OutfitOccasion } from "../../src/lib/outfit";
 import { ClothingItem } from "./OutfitPreview";
@@ -32,7 +33,7 @@ export function OutfitDetails({ advice, gender, occasion }: { advice: OutfitAdvi
 const styles = StyleSheet.create({
   section: { gap: 10 },
   heading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  title: { fontFamily: "serif", fontSize: 25, lineHeight: 30, fontWeight: "600", color: "#21483e" },
+  title: { fontFamily: fontNames.heading, fontSize: 25, lineHeight: 30, fontWeight: "600", color: "#21483e" },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   piece: { width: "48%", flexGrow: 1, flexDirection: "row", alignItems: "center", gap: 6, minHeight: 60, paddingVertical: 6, paddingHorizontal: 6, borderRadius: 12, borderWidth: 1, borderColor: "#dde0d8", backgroundColor: "#fafbf6" },
   icon: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },

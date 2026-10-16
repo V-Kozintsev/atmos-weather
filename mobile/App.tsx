@@ -1,20 +1,8 @@
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  BackHandler,
-  Linking,
-  Modal,
-  Platform,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  Share,
-  Switch,
-  Text,
-  TextInput,
-  View,
-  useWindowDimensions,
-} from "react-native";
+import { useFonts } from "expo-font";
+import { fontAssets } from "./src/typography";
+import { ActivityIndicator, BackHandler, Linking, Modal, Platform, Pressable, RefreshControl, ScrollView, Share, Switch, TextInput, View, useWindowDimensions } from "react-native";
+import { Text } from "./src/typography";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -831,6 +819,8 @@ function Atmos(): React.JSX.Element {
 
 /** @returns {React.JSX.Element} Корень приложения с учётом вырезов экрана и системной навигации. */
 export default function App(): React.JSX.Element {
+  const [fontsLoaded, fontError] = useFonts(fontAssets);
+  if (!fontsLoaded && !fontError) return <View style={{ flex: 1, backgroundColor: "#f7f8f2", alignItems: "center", justifyContent: "center" }}><ActivityIndicator color="#21483e" /></View>;
   return (
     <SafeAreaProvider>
       <Atmos />

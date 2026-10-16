@@ -1,12 +1,15 @@
-import { Image, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Image, Platform, Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
+import { Text, fontNames } from "./typography";
+import { SvgXml } from "react-native-svg";
+import { ozonLogo } from "./marketplaceLogos";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import type { OutfitAdvice, OutfitOccasion, WarmthPreference } from "../../src/lib/outfit";
 import { ClothingItem } from "./OutfitPreview";
 import { outfitItems, outfitSearchUrl } from "./outfitItems";
 import { s } from "./ui";
 
-// Иконки издателей из Google Play: ru.ozon.app.android и com.wildberries.ru.
-const storeLogos = { Ozon: require("../assets/brands/ozon.webp"), WB: require("../assets/brands/wildberries.webp") };
+// Иконка издателя Wildberries из Google Play: com.wildberries.ru.
+const wbLogo = require("../assets/brands/wildberries.webp");
 
 type Glyph = keyof typeof Ionicons.glyphMap;
 interface Choice<T extends string> { value: T; text: string; icon: Glyph; weight?: number }
@@ -37,7 +40,7 @@ function PreferenceGroup<T extends string>({ label, choices, value, onChange }: 
 /** @param {object} props - Магазин, название вещи и действие поиска. @returns {React.JSX.Element} Официальная иконка магазина с доступной зоной касания. */
 function StoreLink({ store, item, onPress }: { store: "Ozon" | "WB"; item: string; onPress: () => void }): React.JSX.Element {
   return <Pressable accessibilityRole="link" accessibilityLabel={`Найти ${item} в ${store}`} onPress={onPress} style={styles.storeTouch}>
-    <Image source={storeLogos[store]} resizeMode="contain" fadeDuration={0} accessible={false} style={styles.storeLogo} />
+    {store === "Ozon" ? <View style={styles.ozonLogo}><SvgXml xml={ozonLogo} width={48} height={18} /></View> : <Image source={wbLogo} resizeMode="contain" fadeDuration={0} accessible={false} style={styles.storeLogo} />}
   </Pressable>;
 }
 
@@ -80,7 +83,7 @@ const styles = StyleSheet.create({
   selectedText: { color: "#f6f8f2", fontWeight: "600" },
   divider: { height: 1, backgroundColor: "#d7ddcf" },
   heading: { gap: 4 },
-  title: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", fontSize: 27, lineHeight: 33, fontWeight: "600", color: "#21483e" },
+  title: { fontFamily: fontNames.heading, fontSize: 27, lineHeight: 33, fontWeight: "600", color: "#21483e" },
   hint: { fontSize: 12, lineHeight: 18, color: "#788278" },
   item: { minHeight: 68, flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: "#dce1d5" },
   itemWrapped: { flexWrap: "wrap" },
@@ -91,4 +94,5 @@ const styles = StyleSheet.create({
   linksWrapped: { width: "100%", paddingLeft: 56 },
   storeTouch: { minHeight: 44, minWidth: 44, alignItems: "center", justifyContent: "center" },
   storeLogo: { width: 32, height: 32, borderRadius: 8 },
+  ozonLogo: { width: 60, height: 32, borderRadius: 8, backgroundColor: "#edf3ff", alignItems: "center", justifyContent: "center" },
 });

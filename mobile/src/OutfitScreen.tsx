@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
-import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type ImageSourcePropType } from "react-native";
+import { Pressable, StyleSheet, View, useWindowDimensions, type ImageSourcePropType } from "react-native";
+import { Text, fontNames } from "./typography";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import type { OutfitAdvice, OutfitOccasion } from "../../src/lib/outfit";
 import { condition, temperature, type Forecast } from "../../src/lib/weather";
@@ -63,7 +64,7 @@ export function OutfitScreen({ forecast, advice, source, period, gender, occasio
   </View>;
 }
 
-const serif = Platform.OS === "ios" ? "Georgia" : "serif";
+const serif = fontNames.heading;
 const styles = StyleSheet.create({
   screen: { gap: 12 },
   toolbar: { backgroundColor: "#ebede5", borderRadius: 14, padding: 3, flexDirection: "row", alignItems: "center", gap: 4 },

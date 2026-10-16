@@ -1,4 +1,5 @@
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { Text } from "./typography";
 import { Chip, s } from "./ui";
 import type { UpdateState } from "./useAppUpdates";
 

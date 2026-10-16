@@ -1,6 +1,7 @@
-import { Platform, Pressable, StyleSheet, Text } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
+import { Text, fontNames } from "./typography";
 
-const fontFamily = Platform.OS === "web" ? 'system-ui, -apple-system, "Segoe UI", sans-serif' : undefined;
+const fontFamily = fontNames.regular;
 
 /** @param {object} props - Подпись, состояние выбора и действие. @returns {React.JSX.Element} Доступная кнопка с зоной касания не менее 48px. */
 export function Chip({
@@ -36,7 +37,7 @@ export const s = StyleSheet.create({
   },
   bodyWide: { maxWidth: 1080 },
   outfitBody: { paddingHorizontal: 12, paddingTop: 4, paddingBottom: 16 },
-  outfitPageTitle: { fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", fontSize: 29, lineHeight: 36, fontWeight: "600", color: "#21483e" },
+  outfitPageTitle: { fontFamily: fontNames.heading, fontSize: 29, lineHeight: 36, fontWeight: "600", color: "#21483e" },
   weatherBodyCompact: { paddingTop: 8, gap: 12 },
   weatherSpacingCompact: { gap: 12 },
   columns: { gap: 16 },

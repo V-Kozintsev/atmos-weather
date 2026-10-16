@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Animated, Image, Modal, PanResponder, Pressable, StyleSheet, Text, View, type GestureResponderEvent, type ImageSourcePropType, type LayoutChangeEvent } from "react-native";
+import { Animated, Image, Modal, PanResponder, Pressable, StyleSheet, View, type GestureResponderEvent, type ImageSourcePropType, type LayoutChangeEvent } from "react-native";
+import { Text } from "./typography";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { s } from "./ui";
