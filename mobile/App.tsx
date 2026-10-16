@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useFonts } from "expo-font";
 import { fontAssets } from "./src/typography";
-import { ActivityIndicator, BackHandler, Linking, Modal, Platform, Pressable, RefreshControl, ScrollView, Share, Switch, TextInput, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, BackHandler, Linking, Modal, Platform, Pressable, RefreshControl, ScrollView, Share, TextInput, View, useWindowDimensions } from "react-native";
 import { Text } from "./src/typography";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -30,6 +30,7 @@ import { Chip, s } from "./src/ui";
 import { WeatherIcon } from "./src/WeatherIcon";
 import { OutfitCard } from "./src/OutfitCard";
 import { OutfitScreen } from "./src/OutfitScreen";
+import { SettingsScreen } from "./src/SettingsScreen";
 import { OutfitCustomization } from "./src/OutfitCustomization";
 import { pinWidget, syncWidgets } from "./src/widget";
 import { useReviews, reviewUrl } from "./src/reviews";
@@ -326,7 +327,7 @@ function Atmos(): React.JSX.Element {
       <View style={[s.header, wide && s.bodyWide, compactWeather && s.headerCompact]}>
         <View style={{ flexShrink: 1 }}>
           <Text style={tab === "outfit" ? s.outfitPageTitle : s.brand}>{tab === "outfit" ? "Что надеть" : appName}</Text>
-          {!compactWeather && tab !== "outfit" && <Text style={s.caption}>Прогноз на каждый день</Text>}
+          {!compactWeather && tab === "weather" && <Text style={s.caption}>Прогноз на каждый день</Text>}
         </View>
         <Pressable
           accessibilityRole="button"
@@ -343,7 +344,7 @@ function Atmos(): React.JSX.Element {
       <ScrollView
         key={`${tab}:${city?.id}`}
         style={s.flex}
-        contentContainerStyle={[s.body, tab === "weather" && wide && s.bodyWide, compactWeather && s.weatherBodyCompact, tab === "outfit" && s.outfitBody]}
+        contentContainerStyle={[s.body, tab === "weather" && wide && s.bodyWide, compactWeather && s.weatherBodyCompact, tab !== "weather" && s.outfitBody]}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
@@ -512,160 +513,18 @@ function Atmos(): React.JSX.Element {
             <OutfitCustomization advice={advice} gender={preferences.gender} occasion={preferences.occasion} warmth={preferences.warmth} onOccasionChange={(occasion) => update({ occasion })} onWarmthChange={(warmth) => update({ warmth })} onOpen={openLink} />
           </OutfitScreen>
         )}
-        {tab === "settings" && (
-          <>
-            <Text style={s.title}>Всё под вас</Text>
-            {Platform.OS === "android" && <View style={s.card}>
-              <Text style={s.subtitle}>Обновления приложения</Text>
-              <Text style={s.caption}>Версия {appVersion}. Проверяем обновления при запуске. Установить их можно прямо в приложении.</Text>
-              <Chip label={updates.busy ? "Проверяем обновление…" : "Проверить обновления"} onPress={() => void updates.check(true)} />
-            </View>}
-            <View style={s.card}>
-              <View style={s.row}>
-                <Text style={[s.subtitle, s.flex]}>Атмосферный фон</Text>
-                <Switch accessibilityLabel="Атмосферный фон" value={preferences.cityBackground} onValueChange={(cityBackground) => update({ cityBackground })} />
-              </View>
-              <Text style={s.caption}>Авто — по местному времени города. Можно выбрать настроение вручную: это меняет оформление, а не прогноз.</Text>
-              <View style={s.wrap}>
-                {sceneModes.map(([sceneMode, label]) => <Chip key={sceneMode} label={label} active={preferences.sceneMode === sceneMode} onPress={() => update({ sceneMode })} />)}
-              </View>
-              <Text style={s.caption}>Подбираем свободные фото рядом с центром выбранного города через Wikimedia Commons. Если снимка нет или нет сети — атмосферное небо. GPS-позицию для поиска фото не передаём.</Text>
-            </View>
-            <View style={s.card}>
-              <Text style={s.subtitle}>Погода на главном экране</Text>
-              <Text style={s.caption}>
-                Виджет показывает выбранный город и обновляется примерно раз в
-                30 минут. Android может откладывать обновление для экономии
-                заряда.
-              </Text>
-              {Platform.OS === "android" ? (
-                <View style={{ gap: 8 }}>
-                <Text style={s.caption}>
-                  Нужен свободный участок примерно 3 × 2 клетки на текущем
-                  рабочем экране. Если места нет: зажмите пустое место на другом
-                  экране → Виджеты → Погода и что надеть и перетащите виджет.
-                  Переносить значок приложения не нужно.
-                </Text>
-                <Chip
-                  label="Добавить виджет"
-                  onPress={() => {
-                    void pinWidget().then((requested) => {
-                      setNotice(requested
-                        ? "Подтвердите добавление. Если телефон пишет «Нет места», добавьте виджет вручную на другой рабочий экран через меню «Виджеты»."
-                        : "Зажмите пустое место на рабочем экране → Виджеты → Погода и что надеть. Перетащите виджет на свободный участок примерно 3 × 2 клетки.");
-                    });
-                  }}
-                />
-                </View>
-              ) : (
-                <Text style={s.caption}>
-                  Виджет доступен в Android-приложении.
-                </Text>
-              )}
-              <View style={s.row}>
-                <Text style={[s.text, s.flex]}>Тёмный виджет</Text>
-                <Switch
-                  accessibilityLabel="Тёмный виджет"
-                  value={preferences.widgetDark}
-                  onValueChange={(widgetDark) => update({ widgetDark })}
-                />
-              </View>
-              <View style={s.row}>
-                <Text style={[s.text, s.flex]}>Одежда в виджете</Text>
-                <Switch
-                  accessibilityLabel="Показывать одежду в виджете"
-                  value={preferences.widgetClothes}
-                  onValueChange={(widgetClothes) => update({ widgetClothes })}
-                />
-              </View>
-            </View>
-            <View style={s.card}>
-              <Text style={s.subtitle}>Помочь приложению стать лучше</Text>
-              <Chip
-                label="Оценить в RuStore ↗"
-                onPress={() => {
-                  void reviews
-                    .rate()
-                    .catch(() =>
-                      setNotice(
-                        "Не удалось открыть RuStore. Попробуйте позже.",
-                      ),
-                    );
-                }}
-              />
-              <View style={s.row}>
-                <Text style={[s.text, s.flex]}>Напоминать об оценке</Text>
-                <Switch
-                  accessibilityLabel="Напоминать об оценке"
-                  value={!reviews.disabled}
-                  onValueChange={(enabled) => {
-                    void reviews.dismiss(!enabled);
-                  }}
-                />
-              </View>
-              <Text style={s.caption}>
-                Без уведомлений и обязательных оценок. Напоминание можно
-                отключить.
-              </Text>
-            </View>
-            <View style={s.card}>
-              <Text style={s.subtitle}>Город</Text>
-              <Text style={s.text}>{city?.name}</Text>
-              <Chip
-                label="Выбрать город"
-                onPress={() => setSearchVisible(true)}
-              />
-              <Chip
-                label={
-                  locating ? "Определяем место…" : "Использовать геолокацию"
-                }
-                onPress={() => {
-                  if (!locating) void locate();
-                }}
-              />
-              <Text style={s.caption}>
-                Только по нажатию. Округлённые координаты передаются MET Norway
-                для прогноза.
-              </Text>
-            </View>
-            {favorites.length > 0 && (
-              <View style={s.card}>
-                <Text style={s.subtitle}>Избранные города</Text>
-                {favorites.map((value) => (
-                  <Chip
-                    key={value.id}
-                    label={value.name}
-                    onPress={() => {
-                      chooseCity(value);
-                      setTab("weather");
-                    }}
-                  />
-                ))}
-              </View>
-            )}
-            <View style={s.card}>
-              <View style={s.row}>
-                <Text style={s.text}>Температура в °F</Text>
-                <Switch
-                  accessibilityLabel="Температура в Фаренгейтах"
-                  value={preferences.fahrenheit}
-                  onValueChange={(fahrenheit) => update({ fahrenheit })}
-                />
-              </View>
-              <View style={s.row}>
-                <Text style={[s.text, s.flex]}>Диагностика разработчика</Text>
-                <Switch
-                  accessibilityLabel="Включить безопасную диагностику"
-                  value={preferences.diagnostics}
-                  onValueChange={(diagnostics) => update({ diagnostics })}
-                />
-              </View>
-              <Text style={s.caption}>
-                Настройки хранятся на устройстве. Аккаунт не требуется.
-              </Text>
-            </View>
-            <View style={s.card}>
-              <Text style={s.subtitle}>{appName} · {appVersion}</Text>
+        {tab === "settings" && <SettingsScreen
+          preferences={preferences} onChange={update} version={appVersion}
+          checking={updates.busy} onCheck={() => void updates.check(true)}
+          city={city} favorites={favorites} locating={locating}
+          onCity={() => setSearchVisible(true)} onLocate={() => { if (!locating) void locate(); }}
+          onFavorite={(value) => { chooseCity(value); setTab("weather"); }}
+          onWidget={() => void pinWidget().then((requested) => setNotice(requested
+            ? "Подтвердите добавление. Если телефон пишет «Нет места», добавьте виджет вручную на другой рабочий экран через меню «Виджеты»."
+            : "Зажмите пустое место на рабочем экране → Виджеты → Погода и что надеть. Перетащите виджет на свободный участок примерно 3 × 2 клетки."))}
+          onRate={() => void reviews.rate().catch(() => setNotice("Не удалось открыть RuStore. Попробуйте позже."))}
+          reviewsEnabled={!reviews.disabled} onReviewsChange={(enabled) => void reviews.dismiss(!enabled)}
+        >
               {cityPhoto && <View><Text style={s.caption}>{cityPhoto.author} · {cityPhoto.title}. В оформлении применены кадрирование и затемнение.</Text><View style={s.wrap}><Chip label="Источник фото ↗" onPress={() => void openLink(cityPhoto.source)} /><Chip label={cityPhoto.license} onPress={() => void openLink(cityPhoto.licenseUrl)} /></View></View>}
               {cityPhotoCredits.map((photo) => (
                 <View key={photo.city}>
@@ -697,9 +556,7 @@ function Atmos(): React.JSX.Element {
                 label="Разработчик · PuskWeb"
                 onPress={() => void openLink("https://puskweb.ru/")}
               />
-            </View>
-          </>
-        )}
+        </SettingsScreen>}
         {forecast && tab !== "settings" && (
           <Text style={s.caption}>
             {stale ? "Сохранено" : "Обновлено"}{" "}
