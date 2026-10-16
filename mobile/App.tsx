@@ -42,6 +42,7 @@ import { Chip, s } from "./src/ui";
 import { WeatherIcon } from "./src/WeatherIcon";
 import { OutfitCard } from "./src/OutfitCard";
 import { OutfitScreen } from "./src/OutfitScreen";
+import { OutfitCustomization } from "./src/OutfitCustomization";
 import { pinWidget, syncWidgets } from "./src/widget";
 import { useReviews, reviewUrl } from "./src/reviews";
 import { useAppUpdates } from "./src/useAppUpdates";
@@ -520,67 +521,7 @@ function Atmos(): React.JSX.Element {
         )}
         {tab === "outfit" && advice && forecast && (
           <OutfitScreen forecast={forecast} advice={advice} source={outfitImage} period={period} gender={preferences.gender} occasion={preferences.occasion} fahrenheit={preferences.fahrenheit} eveningHour={eveningHour} eveningHint={eveningHint} onPeriodChange={setPeriod} onGenderChange={(gender) => update({ gender })}>
-            <View style={s.wrap}>
-              {(
-                [
-                  ["casual", "На каждый день"],
-                  ["office", "Офис"],
-                  ["sport", "Активный"],
-                ] as const
-              ).map(([occasion, label]) => (
-                <Chip
-                  key={occasion}
-                  label={label}
-                  active={preferences.occasion === occasion}
-                  onPress={() => update({ occasion })}
-                />
-              ))}
-            </View>
-            <View style={s.wrap}>
-              {(
-                [
-                  ["balanced", "Обычно"],
-                  ["warmer", "Я мёрзну"],
-                  ["lighter", "Мне жарко"],
-                ] as const
-              ).map(([warmth, label]) => (
-                <Chip
-                  key={warmth}
-                  label={label}
-                  active={preferences.warmth === warmth}
-                  onPress={() => update({ warmth })}
-                />
-              ))}
-            </View>
-            <View style={s.card}>
-              <Text style={s.subtitle}>Найти похожие вещи</Text>
-              <Text style={s.caption}>
-                Обычный поиск в магазине, без партнёрских начислений.
-              </Text>
-              {advice.items.slice(0, 4).map((item) => (
-                <View key={item}>
-                  <Text style={s.text}>{item}</Text>
-                  <View style={s.wrap}>
-                    <Chip
-                      label="Ozon ↗"
-                      onPress={() =>
-                        void openLink(
-                          `https://www.ozon.ru/search/?text=${encodeURIComponent(`${preferences.gender === "woman" ? "женская" : "мужская"} ${item}`)}`,
-                        )
-                      }
-                    />
-                    <Chip
-                      label="WB ↗"
-                      onPress={() =>
-                        void openLink(
-                          `https://www.wildberries.ru/catalog/0/search.aspx?search=${encodeURIComponent(`${preferences.gender === "woman" ? "женская" : "мужская"} ${item}`)}`,
-                        )
-                      }
-                    />
-                  </View>
-                </View>
-              ))}
-            </View>
+            <OutfitCustomization advice={advice} gender={preferences.gender} occasion={preferences.occasion} warmth={preferences.warmth} onOccasionChange={(occasion) => update({ occasion })} onWarmthChange={(warmth) => update({ warmth })} onOpen={openLink} />
           </OutfitScreen>
         )}
         {tab === "settings" && (

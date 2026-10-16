@@ -1,19 +1,13 @@
 import { StyleSheet, Text, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import type { OutfitAdvice, OutfitOccasion } from "../../src/lib/outfit";
-import { ClothingItem, outfitPhotoItems, type ClothingPhoto } from "./OutfitPreview";
+import { ClothingItem } from "./OutfitPreview";
+import { outfitItems } from "./outfitItems";
 import { s } from "./ui";
 
 /** @param {object} props - Рекомендация по одежде. @returns {React.JSX.Element} Компактный комплект по категориям с пояснением прогноза. */
 export function OutfitDetails({ advice, gender, occasion }: { advice: OutfitAdvice; gender: "woman" | "man"; occasion: OutfitOccasion }): React.JSX.Element {
-  const photos = outfitPhotoItems(advice, gender, occasion);
-  const pieces: { label: string; text: string; photo?: ClothingPhoto }[] = [
-    { label: "Верх", text: advice.pieces.upper, photo: photos.top },
-    ...(advice.pieces.outer ? [{ label: "Верхний слой", text: advice.pieces.outer, photo: photos.outer }] : []),
-    { label: "Низ", text: advice.pieces.lower, photo: photos.lower },
-    { label: "Обувь", text: advice.pieces.shoes, photo: photos.shoes },
-    ...advice.pieces.accessories.map((text) => ({ label: "С собой", text, photo: /зонт|дожд/i.test(text) ? "umbrella" as const : undefined })),
-  ];
+  const pieces = outfitItems(advice, gender, occasion);
   return (
     <View style={styles.section}>
       <View style={styles.heading}>
