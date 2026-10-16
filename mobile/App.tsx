@@ -104,7 +104,9 @@ function Atmos(): React.JSX.Element {
   const [preferences, setPreferences] = useState(initial);
   const [hydrated, setHydrated] = useState(false);
   const [tab, setTab] = useState<Tab>("weather");
-  const wide = useWindowDimensions().width >= 1000;
+  const viewport = useWindowDimensions();
+  const wide = viewport.width >= 1000 || (viewport.width >= 600 && viewport.width > viewport.height);
+  const compactWeather = tab === "weather" && viewport.width < 600 && viewport.height < 900 && viewport.fontScale <= 1.15;
   const [period, setPeriod] = useState<"hour" | "day">("hour");
   const [dayIndex, setDayIndex] = useState(0);
   const [searchVisible, setSearchVisible] = useState(false);
@@ -333,10 +335,10 @@ function Atmos(): React.JSX.Element {
   return (
     <SafeAreaView style={s.safe} edges={["top", "left", "right", "bottom"]}>
       <StatusBar style="dark" />
-      <View style={[s.header, wide && s.bodyWide]}>
+      <View style={[s.header, wide && s.bodyWide, compactWeather && s.headerCompact]}>
         <View style={{ flexShrink: 1 }}>
           <Text style={s.brand}>{appName}</Text>
-          <Text style={s.caption}>Прогноз на каждый день</Text>
+          {!compactWeather && <Text style={s.caption}>Прогноз на каждый день</Text>}
         </View>
         <Pressable
           accessibilityRole="button"
@@ -353,7 +355,7 @@ function Atmos(): React.JSX.Element {
       <ScrollView
         key={`${tab}:${city?.id}`}
         style={s.flex}
-        contentContainerStyle={[s.body, tab === "weather" && wide && s.bodyWide]}
+        contentContainerStyle={[s.body, tab === "weather" && wide && s.bodyWide, compactWeather && s.weatherBodyCompact]}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
@@ -393,11 +395,11 @@ function Atmos(): React.JSX.Element {
         )}
         {tab === "weather" && forecast && (
           <>
-            <View style={[s.columns, wide && s.columnsWide]}>
-            <View style={s.column}>
-            <View style={s.hero}>
+            <View style={[s.columns, wide && s.columnsWide, compactWeather && s.weatherSpacingCompact]}>
+            <View style={[s.column, wide && s.columnWide, compactWeather && s.weatherSpacingCompact]}>
+            <View style={[s.hero, compactWeather && s.heroCompact]}>
               {preferences.cityBackground && <CityBackdrop forecast={forecast} mode={preferences.sceneMode} photo={cityPhoto} />}
-              <View style={s.row}>
+              <View style={[s.row, compactWeather && s.heroHeadingCompact]}>
                 <Text style={[s.heroLabel, s.flex]}>
                   {stale ? "СОХРАНЁННЫЙ ПРОГНОЗ" : "СЕЙЧАС В ГОРОДЕ"}
                 </Text>
@@ -407,7 +409,7 @@ function Atmos(): React.JSX.Element {
                     favorite ? "Убрать из избранного" : "Добавить в избранное"
                   }
                   onPress={toggleFavorite}
-                  style={s.iconButton}
+                  style={[s.iconButton, compactWeather && s.heroFavoriteCompact]}
                 >
                   <Ionicons
                     name={favorite ? "star" : "star-outline"}
@@ -441,12 +443,12 @@ function Atmos(): React.JSX.Element {
                 {forecast.current.humidity}%
               </Text>
             </View>
-            {cityPhoto && preferences.cityBackground && <Text accessibilityRole="link" style={s.caption} onPress={() => void openLink(cityPhoto.source)}>Фото города · автор и источник ↗</Text>}
+            {!compactWeather && cityPhoto && preferences.cityBackground && <Text accessibilityRole="link" style={s.caption} onPress={() => void openLink(cityPhoto.source)}>Фото города · автор и источник ↗</Text>}
             {advice && (
-              <OutfitCard advice={advice} gender={preferences.gender} occasion={preferences.occasion} period={period} evening={eveningHint} onPress={() => setTab("outfit")} />
+              <OutfitCard advice={advice} gender={preferences.gender} occasion={preferences.occasion} period={period} evening={eveningHint} compact={compactWeather} onPress={() => setTab("outfit")} />
             )}
             </View>
-            <View style={s.column}>
+            <View style={[s.column, wide && s.columnWide, compactWeather && s.weatherSpacingCompact]}>
             <Text style={s.title}>Ближайшие часы</Text>
             <ScrollView
               horizontal
@@ -454,17 +456,20 @@ function Atmos(): React.JSX.Element {
               contentContainerStyle={s.horizontal}
             >
               {selectedHours.map((hour) => (
-                <View key={hour.time} style={s.hour}>
+                <View key={hour.time} style={[s.hour, compactWeather && s.hourCompact]}>
                   <Text style={s.hourCaption}>{clock(hour.time)}</Text>
+                  <View style={compactWeather ? s.hourReadingCompact : s.hourReading}>
                   <WeatherIcon
                     code={hour.code}
                     size={38}
                     night={!hour.day}
                   />
                   <Text style={s.hourDegrees}>{degrees(hour.temperature)}</Text>
+                  </View>
                 </View>
               ))}
             </ScrollView>
+            {compactWeather && cityPhoto && preferences.cityBackground && <Text accessibilityRole="link" style={s.caption} onPress={() => void openLink(cityPhoto.source)}>Фото города · автор и источник ↗</Text>}
             <Text style={s.title}>На неделю</Text>
             <View style={s.card}>
               {forecast.days.map((day, index) => (
@@ -843,14 +848,14 @@ function Atmos(): React.JSX.Element {
           </View>
         )}
       </ScrollView>
-      <View style={s.nav}>
+      <View style={[s.nav, compactWeather && s.navCompact]}>
         {tabs.map(([value, label, glyph]) => (
           <Pressable
             key={value}
             accessibilityRole="tab"
             accessibilityState={{ selected: tab === value }}
             accessibilityLabel={label}
-            style={s.navItem}
+            style={[s.navItem, compactWeather && s.navItemCompact]}
             onPress={() => setTab(value)}
           >
             <View style={[s.navIcon, tab === value && s.navSelected]}>
