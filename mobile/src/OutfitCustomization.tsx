@@ -1,9 +1,12 @@
-import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Image, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import type { OutfitAdvice, OutfitOccasion, WarmthPreference } from "../../src/lib/outfit";
 import { ClothingItem } from "./OutfitPreview";
 import { outfitItems, outfitSearchUrl } from "./outfitItems";
 import { s } from "./ui";
+
+// Иконки издателей из Google Play: ru.ozon.app.android и com.wildberries.ru.
+const storeLogos = { Ozon: require("../assets/brands/ozon.webp"), WB: require("../assets/brands/wildberries.webp") };
 
 type Glyph = keyof typeof Ionicons.glyphMap;
 interface Choice<T extends string> { value: T; text: string; icon: Glyph; weight?: number }
@@ -31,10 +34,10 @@ function PreferenceGroup<T extends string>({ label, choices, value, onChange }: 
   </View>;
 }
 
-/** @param {object} props - Подпись магазина и обработчик открытия поиска. @returns {React.JSX.Element} Небольшая ссылка магазина с обычной зоной касания. */
+/** @param {object} props - Магазин, название вещи и действие поиска. @returns {React.JSX.Element} Официальная иконка магазина с доступной зоной касания. */
 function StoreLink({ store, item, onPress }: { store: "Ozon" | "WB"; item: string; onPress: () => void }): React.JSX.Element {
   return <Pressable accessibilityRole="link" accessibilityLabel={`Найти ${item} в ${store}`} onPress={onPress} style={styles.storeTouch}>
-    <View style={styles.storePill}><Text style={styles.storeText}>{store}</Text><Ionicons name="arrow-up" size={12} color="#21483e" style={{ transform: [{ rotate: "45deg" }] }} /></View>
+    <Image source={storeLogos[store]} resizeMode="contain" fadeDuration={0} accessible={false} style={styles.storeLogo} />
   </Pressable>;
 }
 
@@ -62,7 +65,6 @@ export function OutfitCustomization({ advice, gender, occasion, warmth, onOccasi
         </View>
       </View>)}
     </View>
-    <Text style={styles.hint}>Ссылки открывают поиск. Без партнёрских начислений.</Text>
   </View>;
 }
 
@@ -74,7 +76,7 @@ const styles = StyleSheet.create({
   segments: { flexDirection: "row", backgroundColor: "#e7ebdf", borderRadius: 12, overflow: "hidden" },
   choice: { minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 7, paddingHorizontal: 4, borderRadius: 12 },
   selected: { backgroundColor: "#21483e" },
-  choiceText: { color: "#31574a", fontSize: 12, lineHeight: 17, flexShrink: 1, textAlign: "center" },
+  choiceText: { color: "#31574a", fontSize: 12, lineHeight: 17, flex: 1, minWidth: 0, textAlign: "center" },
   selectedText: { color: "#f6f8f2", fontWeight: "600" },
   divider: { height: 1, backgroundColor: "#d7ddcf" },
   heading: { gap: 4 },
@@ -87,7 +89,6 @@ const styles = StyleSheet.create({
   category: { fontSize: 11, lineHeight: 16, color: "#7c857b", marginTop: 2 },
   links: { flexDirection: "row", alignItems: "center", gap: 4 },
   linksWrapped: { width: "100%", paddingLeft: 56 },
-  storeTouch: { minHeight: 44, justifyContent: "center" },
-  storePill: { minHeight: 32, paddingHorizontal: 8, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 3, borderRadius: 10, backgroundColor: "#e9eddf" },
-  storeText: { fontSize: 12, lineHeight: 17, fontWeight: "600", color: "#21483e" },
+  storeTouch: { minHeight: 44, minWidth: 44, alignItems: "center", justifyContent: "center" },
+  storeLogo: { width: 32, height: 32, borderRadius: 8 },
 });

@@ -3,16 +3,18 @@ import { Image, StyleSheet, View, type LayoutChangeEvent } from "react-native";
 import type { OutfitAdvice, OutfitOccasion } from "../../src/lib/outfit";
 
 const atlas = require("../assets/outfit-items.webp");
-export type ClothingPhoto = "tee" | "knit" | "blazer" | "jacket" | "trousers" | "skirt" | "loafers" | "sneakers" | "coat" | "parka" | "boots" | "umbrella";
+const hat = require("../assets/outfit-hat.webp");
+export type ClothingPhoto = "tee" | "knit" | "blazer" | "jacket" | "trousers" | "skirt" | "loafers" | "sneakers" | "coat" | "parka" | "boots" | "umbrella" | "hat";
 type Item = ClothingPhoto;
-const cells: Record<Item, [number, number]> = {
+const cells: Record<Exclude<Item, "hat">, [number, number]> = {
   tee: [0, 0], knit: [1, 0], blazer: [2, 0], jacket: [3, 0],
   trousers: [0, 1], skirt: [1, 1], loafers: [2, 1], sneakers: [3, 1],
   coat: [0, 2], parka: [1, 2], boots: [2, 2], umbrella: [3, 2],
 };
 
-/** @param {object} props - Вещь и размер ячейки. @returns {React.JSX.Element} Один предмет из общей локальной текстуры без дополнительных запросов. */
+/** @param {object} props - Вещь и размер изображения. @returns {React.JSX.Element} Локальная фотография предмета без дополнительных запросов. */
 export function ClothingItem({ item, size }: { item: Item; size: number }): React.JSX.Element {
+  if (item === "hat") return <Image source={hat} resizeMode="contain" fadeDuration={0} style={{ width: size, height: size }} />;
   const [column, row] = cells[item];
   return <View style={{ width: size, height: size, overflow: "hidden" }}>
     <Image source={atlas} resizeMode="stretch" fadeDuration={0} style={{ position: "absolute", width: size * 4, height: size * 3, left: -column * size, top: -row * size }} />

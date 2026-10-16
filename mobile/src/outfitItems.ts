@@ -11,7 +11,7 @@ export function outfitItems(advice: OutfitAdvice, gender: "woman" | "man", occas
     ...(advice.pieces.outer ? [{ label: "Верхний слой", text: advice.pieces.outer, photo: photos.outer }] : []),
     { label: "Низ", text: advice.pieces.lower, photo: photos.lower },
     { label: "Обувь", text: advice.pieces.shoes, photo: photos.shoes },
-    ...advice.pieces.accessories.map((text) => ({ label: "С собой", text, photo: /зонт|дожд/i.test(text) ? "umbrella" as const : undefined })),
+    ...advice.pieces.accessories.map((text) => ({ label: "С собой", text, photo: /шапк|головн/i.test(text) ? "hat" as const : /зонт|дожд/i.test(text) ? "umbrella" as const : undefined })),
   ];
 }
 
