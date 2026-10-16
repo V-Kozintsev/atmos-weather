@@ -8,7 +8,9 @@ const assetRoot = path.join(__dirname, "../dist");
 let window, tray, quitting = false, compact = false, fullBounds;
 const diagnostics = process.argv.includes("--diagnostics");
 protocol.registerSchemesAsPrivileged([{ scheme: "atmos", privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
-app.setName("Atmos");
+// Сохраняем прежний каталог настроек при смене отображаемого имени.
+app.setPath("userData", path.join(app.getPath("appData"), "Atmos"));
+app.setName("Погода и что надеть");
 app.setAppUserModelId("ru.puskweb.atmos");
 
 /** @param {string} event - Событие оболочки. @param {object} detail - Безопасные состояния без погоды, координат или пользовательского текста. */
@@ -62,9 +64,9 @@ function initializeUpdates() {
     trace("update downloaded", { version: info.version });
     const answer = await dialog.showMessageBox(window, {
       type: "info",
-      title: "Обновление Atmos",
+      title: "Обновление приложения",
       message: `Версия ${info.version} готова к установке.`,
-      detail: "Можно перезапустить Atmos сейчас или установить обновление при следующем закрытии.",
+      detail: "Можно перезапустить приложение сейчас или установить обновление при следующем закрытии.",
       buttons: ["Перезапустить сейчас", "Позже"],
       defaultId: 0,
       cancelId: 1,
@@ -87,7 +89,7 @@ function createWindow() {
   const icon = path.join(assetRoot, "icons/pwa-192.png");
   window = new BrowserWindow({
     width: 1360, height: 940, minWidth: 800, minHeight: 620,
-    title: "Atmos", backgroundColor: "#121821", icon, show: false,
+    title: "Погода и что надеть", backgroundColor: "#121821", icon, show: false,
     webPreferences: { preload: path.join(__dirname, "preload.cjs"), contextIsolation: true, nodeIntegration: false, sandbox: true, backgroundThrottling: false },
   });
   window.removeMenu();
@@ -100,13 +102,13 @@ function createWindow() {
   window.webContents.on("did-fail-load", () => console.error("[Atmos Desktop] local interface failed to load"));
   window.webContents.on("did-finish-load", () => trace("local page loaded"));
   tray = new Tray(nativeImage.createFromPath(icon).resize({ width: 20, height: 20 }));
-  tray.setToolTip("Atmos — погода под рукой");
+  tray.setToolTip("Погода и что надеть");
   tray.setContextMenu(Menu.buildFromTemplate([
-    { label: "Открыть Atmos", click: () => setCompact(false) },
+    { label: "Открыть приложение", click: () => setCompact(false) },
     { label: "Мини-погода поверх окон", click: () => setCompact(true) },
     { label: "Свернуть в область уведомлений", click: () => window.hide() },
     { type: "separator" },
-    { label: "Завершить Atmos", click: () => app.quit() },
+    { label: "Завершить приложение", click: () => app.quit() },
   ]));
   tray.on("double-click", () => setCompact(false));
   tray.on("click", () => { if (!window.isVisible()) { window.show(); window.focus(); } });
@@ -143,8 +145,8 @@ else {
     ipcMain.on("atmos:weather-status", (event, data) => {
       if (!trusted(event) || !data || typeof data.city !== "string" || typeof data.description !== "string" || !Number.isFinite(data.temperature)) return;
       const title = `${data.city.slice(0, 60)} · ${Math.round(data.temperature)}° · ${data.description.slice(0, 60)}`.replace(/[\r\n\x00-\x1f]/g, " ");
-      tray.setToolTip(`Atmos — ${title}`);
-      window.setTitle(`Atmos — ${title}`);
+      tray.setToolTip(`Погода и что надеть — ${title}`);
+      window.setTitle(`Погода и что надеть — ${title}`);
     });
     createWindow();
     initializeUpdates();

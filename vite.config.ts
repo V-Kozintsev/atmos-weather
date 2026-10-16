@@ -7,7 +7,7 @@ export default defineConfig({
     registerType: "prompt",
     includeAssets: ["favicon.svg", "icons/*.png"],
     manifest: {
-      id: "./", name: "Atmos — погода и что надеть", short_name: "Atmos",
+      id: "./", name: "Погода и что надеть", short_name: "Погода и что надеть",
       description: "Прогноз погоды и мужские / женские образы на час или весь день.",
       lang: "ru", start_url: "./", scope: "./", display: "standalone",
       theme_color: "#121821", background_color: "#121821",

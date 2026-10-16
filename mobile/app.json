@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Atmos",
+    "name": "Погода и что надеть",
     "slug": "atmos-weather",
     "version": "3.0.1",
     "orientation": "default",
@@ -32,7 +32,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Atmos использует ваше местоположение только по нажатию для прогноза погоды. Фоновое отслеживание не используется."
+          "locationWhenInUsePermission": "Приложение «Погода и что надеть» использует ваше местоположение только по нажатию для прогноза погоды. Фоновое отслеживание не используется."
         }
       ],
       "expo-asset",
@@ -43,7 +43,7 @@
           "widgets": [
             {
               "name": "AtmosWeather",
-              "label": "Atmos · погода и одежда",
+              "label": "Погода и что надеть",
               "description": "Температура и что надеть для выбранного города",
               "minWidth": "180dp",
               "minHeight": "120dp",

@@ -2048,3 +2048,5 @@ footer strong {
     min-height: 26px;
   }
 }
+
+.brand-name { font-size: 18px; line-height: 1.25; letter-spacing: -0.3px; }

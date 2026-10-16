@@ -1,5 +1,6 @@
 appId: ru.puskweb.atmos
-productName: Atmos
+productName: Погода и что надеть
+executableName: Atmos
 directories:
   output: desktop-release
 files:

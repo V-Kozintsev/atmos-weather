@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="mobile/assets/icon-v2.png" width="88" alt="Atmos">
+  <img src="mobile/assets/icon-v2.png" width="88" alt="Погода и что надеть">
 </p>
 
-<h1 align="center">Atmos</h1>
+<h1 align="center">Погода и что надеть</h1>
 <p align="center">Погода и подсказка, что надеть — на ближайший час или весь день.</p>
 <p align="center">
   <a href="https://v-kozintsev.github.io/atmos-weather/">Открыть приложение</a> ·
@@ -24,7 +24,7 @@
 
 | Версия | Возможности |
 | :--- | :--- |
-| **[Android](https://www.rustore.ru/catalog/app/ru.puskweb.atmos)** | React Native / Expo: компактный интерфейс, виджет, увеличение фото и атмосферные фоны. Обновление 3.0 на модерации; в магазине доступна 2.2.1. |
+| **[Android](https://www.rustore.ru/catalog/app/ru.puskweb.atmos)** | React Native / Expo: компактный интерфейс, виджет, увеличение фото и атмосферные фоны. В RuStore опубликована 3.0; готовится обновление 3.0.1 с новым названием и предложением обновлений внутри приложения. |
 | **[Веб](https://v-kozintsev.github.io/atmos-weather/)** | Тот же интерфейс React Native / Expo: две колонки на компьютере, мобильный вид на телефоне, установка на главный экран и обновления. |
 | **[Windows](https://github.com/V-Kozintsev/atmos-weather/releases/latest)** | Electron: мини-погода поверх окон, область уведомлений и обновления установщика. |
 

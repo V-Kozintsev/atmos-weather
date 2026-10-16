@@ -48,9 +48,9 @@ export const s = StyleSheet.create({
     gap: 12,
   },
   brand: {
-    fontFamily, fontSize: 32,
+    fontFamily, fontSize: 20, lineHeight: 25,
     fontWeight: "800",
-    letterSpacing: -1.5,
+    letterSpacing: -0.4,
     color: "#21483e",
   },
   caption: { fontFamily, fontSize: 14, lineHeight: 21, color: "#68756a" },

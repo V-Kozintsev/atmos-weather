@@ -10,7 +10,6 @@ export type UpdateStatus = "idle" | "checking" | "available" | "downloading" | "
 export interface UpdateState { status: UpdateStatus; version?: number; progress?: number; visible: boolean }
 const deferredKey = "atmos-native-deferred-update";
 const busyStatuses: UpdateStatus[] = ["checking", "downloading", "installing"];
-export const appVersion = config.expo.version;
 
 /** @param {boolean} enabled - Настройки восстановлены, можно проверять обновления. @returns {object} Проверка, загрузка, установка и откладывание обновления через RuStore. */
 export function useAppUpdates(enabled: boolean) {

@@ -27,7 +27,7 @@ jobs:
           } | Set-Content desktop-release/SHA256SUMS.txt -Encoding ascii
       - uses: softprops/action-gh-release@v2
         with:
-          name: Atmos ${{ github.ref_name }} — Windows
+          name: Погода и что надеть ${{ github.ref_name }} — Windows
           files: |
             desktop-release/*.exe
             desktop-release/*.yml

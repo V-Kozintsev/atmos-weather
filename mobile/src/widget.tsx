@@ -1,3 +1,4 @@
+import { appName } from "../../src/lib/appInfo";
 import { Platform } from "react-native";
 import {
   FlexWidget,
@@ -91,7 +92,7 @@ export function AtmosWidget({
   return (
     <FlexWidget
       clickAction="OPEN_APP"
-      accessibilityLabel="Atmos: нажмите погоду, чтобы открыть приложение. Кнопки переключают одежду и обновляют прогноз."
+      accessibilityLabel={`${appName}: нажмите погоду, чтобы открыть приложение. Кнопки переключают одежду и обновляют прогноз.`}
       style={{
         height: Math.min(Math.max(height, 120), 180),
         width: "match_parent",
@@ -102,7 +103,7 @@ export function AtmosWidget({
       }}
     >
       <FlexWidget style={{ width: "match_parent", flexDirection: "row", alignItems: "center" }}>
-        <FlexWidget style={{ flex: 1 }}><TextWidget text={forecast?.city.name || "Atmos"} maxLines={1} style={{ fontSize: 13, fontWeight: "700", color: foreground }} /></FlexWidget>
+        <FlexWidget style={{ flex: 1 }}><TextWidget text={forecast?.city.name || appName} maxLines={1} style={{ fontSize: 13, fontWeight: "700", color: foreground }} /></FlexWidget>
         <TextWidget text="MET" style={{ fontSize: 10, color: secondary }} />
       </FlexWidget>
       {forecast ? (
@@ -128,7 +129,7 @@ export function AtmosWidget({
             />
           </FlexWidget> : <FlexWidget style={{ width: "match_parent", paddingVertical: 4 }}>
             <TextWidget text={outfit?.title || "Что надеть"} maxLines={1} style={{ fontSize: 16, fontWeight: "700", color: foreground }} />
-            <TextWidget text={outfit ? `${outfit.pieces.outer || outfit.pieces.upper} · ${outfit.pieces.shoes}` : "Загрузите прогноз в Atmos"} maxLines={compact ? 1 : 2} style={{ fontSize: 13, color: secondary, marginTop: 4 }} />
+            <TextWidget text={outfit ? `${outfit.pieces.outer || outfit.pieces.upper} · ${outfit.pieces.shoes}` : "Откройте приложение и загрузите прогноз"} maxLines={compact ? 1 : 2} style={{ fontSize: 13, color: secondary, marginTop: 4 }} />
           </FlexWidget>}
           {!compact && !showingOutfit && <TextWidget
             text={`${offline ? "Сохранено · " : ""}${condition(forecast.current.code)} · ${temperature(forecast.current.feels, preferences.fahrenheit)}° по ощущениям`}
@@ -145,12 +146,12 @@ export function AtmosWidget({
         </FlexWidget>
       ) : (
         <TextWidget
-          text="Откройте Atmos и загрузите прогноз"
+          text="Откройте приложение и загрузите прогноз"
           style={{ fontSize: 14, color: secondary, marginTop: 8 }}
         />
       )}
       <FlexWidget style={{ width: "match_parent", flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 3 }}>
-        <FlexWidget clickAction={preferences.widgetClothes === false ? "OPEN_APP" : "TOGGLE_OUTFIT"} accessibilityLabel={preferences.widgetClothes === false ? "Открыть Atmos" : showingOutfit ? "Показать погоду в виджете" : "Показать одежду в виджете"} style={{ height: 44, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", borderRadius: 22, backgroundColor: button }}>
+        <FlexWidget clickAction={preferences.widgetClothes === false ? "OPEN_APP" : "TOGGLE_OUTFIT"} accessibilityLabel={preferences.widgetClothes === false ? "Открыть приложение" : showingOutfit ? "Показать погоду в виджете" : "Показать одежду в виджете"} style={{ height: 44, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", borderRadius: 22, backgroundColor: button }}>
           <SvgWidget svg={widgetActionIcon(preferences.widgetClothes === false ? "open" : showingOutfit ? "weather" : "outfit", buttonInk)} style={{ width: 18, height: 18, marginRight: 7 }} />
           <TextWidget text={preferences.widgetClothes === false ? "Открыть" : showingOutfit ? "Погода" : "Что надеть"} style={{ fontSize: 12, fontWeight: "600", color: buttonInk }} />
         </FlexWidget>

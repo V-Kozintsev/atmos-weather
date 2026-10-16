@@ -45,7 +45,8 @@ import { OutfitPhoto } from "./src/OutfitPhoto";
 import { OutfitDetails } from "./src/OutfitDetails";
 import { pinWidget, syncWidgets } from "./src/widget";
 import { useReviews, reviewUrl } from "./src/reviews";
-import { useAppUpdates, appVersion } from "./src/useAppUpdates";
+import { useAppUpdates } from "./src/useAppUpdates";
+import { appName, appVersion } from "../src/lib/appInfo";
 import { UpdateCard } from "./src/UpdateCard";
 import { CityBackdrop, sceneModes, cityPhotoCredits, type SceneMode } from "./src/CityBackdrop";
 import { useCityPhoto } from "./src/cityPhotos";
@@ -260,7 +261,7 @@ function Atmos(): React.JSX.Element {
     if (!city) return;
     const url = `https://v-kozintsev.github.io/atmos-weather/?city=${encodeURIComponent(city.name)}&region=${encodeURIComponent(city.country)}&lat=${city.latitude}&lon=${city.longitude}`;
     try {
-      await Share.share({ message: `${city.name} — погода в Atmos\n${url}` });
+      await Share.share({ message: `${city.name} — прогноз погоды\n${url}` });
     } catch {
       setNotice("Не удалось поделиться прогнозом.");
     }
@@ -334,8 +335,8 @@ function Atmos(): React.JSX.Element {
       <StatusBar style="dark" />
       <View style={[s.header, wide && s.bodyWide]}>
         <View style={{ flexShrink: 1 }}>
-          <Text style={s.brand}>atmos.</Text>
-          <Text style={s.caption}>Погода для ваших планов</Text>
+          <Text style={s.brand}>{appName}</Text>
+          <Text style={s.caption}>Прогноз на каждый день</Text>
         </View>
         <Pressable
           accessibilityRole="button"
@@ -615,7 +616,7 @@ function Atmos(): React.JSX.Element {
           <>
             <Text style={s.title}>Всё под вас</Text>
             {Platform.OS === "android" && <View style={s.card}>
-              <Text style={s.subtitle}>Обновления Atmos</Text>
+              <Text style={s.subtitle}>Обновления приложения</Text>
               <Text style={s.caption}>Версия {appVersion}. Проверяем обновления при запуске. Установить их можно прямо в приложении.</Text>
               <Chip label={updates.busy ? "Проверяем обновление…" : "Проверить обновления"} onPress={() => void updates.check(true)} />
             </View>}
@@ -644,7 +645,7 @@ function Atmos(): React.JSX.Element {
                     void pinWidget().then((requested) => {
                       if (!requested)
                         setNotice(
-                          "Зажмите пустое место на главном экране → Виджеты → Atmos.",
+                          "Зажмите пустое место на главном экране → Виджеты → Погода и что надеть.",
                         );
                     });
                   }}
@@ -672,7 +673,7 @@ function Atmos(): React.JSX.Element {
               </View>
             </View>
             <View style={s.card}>
-              <Text style={s.subtitle}>Помочь Atmos стать лучше</Text>
+              <Text style={s.subtitle}>Помочь приложению стать лучше</Text>
               <Chip
                 label="Оценить в RuStore ↗"
                 onPress={() => {
@@ -757,7 +758,7 @@ function Atmos(): React.JSX.Element {
               </Text>
             </View>
             <View style={s.card}>
-              <Text style={s.subtitle}>Atmos · 3.0.0</Text>
+              <Text style={s.subtitle}>{appName} · {appVersion}</Text>
               {cityPhoto && <View><Text style={s.caption}>{cityPhoto.author} · {cityPhoto.title}. В оформлении применены кадрирование и затемнение.</Text><View style={s.wrap}><Chip label="Источник фото ↗" onPress={() => void openLink(cityPhoto.source)} /><Chip label={cityPhoto.license} onPress={() => void openLink(cityPhoto.licenseUrl)} /></View></View>}
               {cityPhotoCredits.map((photo) => (
                 <View key={photo.city}>
@@ -806,7 +807,7 @@ function Atmos(): React.JSX.Element {
         {forecast && tab !== "settings" && Platform.OS === "web" && <Chip label={loading ? "Обновляем…" : "Обновить прогноз"} onPress={refresh} />}
         {tab === "weather" && reviews.visible && (
           <View style={s.card}>
-            <Text style={s.subtitle}>Пару слов об Atmos?</Text>
+            <Text style={s.subtitle}>Как вам приложение?</Text>
             <Text style={s.text}>
               Ваша оценка и отзыв помогут улучшать приложение.
             </Text>

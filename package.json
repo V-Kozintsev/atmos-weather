@@ -3,7 +3,7 @@
   "version": "2.2.1",
   "main": "desktop/main.cjs",
   "author": "Viktor Kozintsev / PuskWeb",
-  "description": "Atmos — погода, прогноз и мини-панель для рабочего стола",
+  "description": "Погода и что надеть — прогноз, подбор одежды и мини-панель",
   "private": true,
   "type": "module",
   "scripts": {

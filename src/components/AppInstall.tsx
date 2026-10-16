@@ -112,7 +112,7 @@ export default function AppInstall() {
   return (
     <div className="app-install">
       <button ref={button} className="install-button" onClick={install} disabled={busy}
-        aria-label={installed ? "Об установленном приложении Atmos" : "Установить Atmos"}>
+        aria-label={installed ? "Об установленном приложении" : "Установить приложение"}>
         {installed ? <ShieldCheck size={18} /> : <Download size={18} />}
         <span>{installed ? "Приложение" : "Установить"}</span>
       </button>
@@ -123,7 +123,7 @@ export default function AppInstall() {
           <button className="icon-button" aria-label="Закрыть инструкцию" autoFocus onClick={() => dialog.current?.close()}><X size={22} /></button>
         </div>
         <p className="eyebrow">ВАШ ПРОГНОЗ ПОД РУКОЙ</p>
-        <h2 id="install-title">Atmos как приложение</h2>
+        <h2 id="install-title">Погода и что надеть — приложение</h2>
         <p>Собственная иконка и отдельное окно — без лишних вкладок.</p>
         <a className="install-done windows-download" href="https://github.com/V-Kozintsev/atmos-weather/releases/latest/download/Atmos-Setup-x64.exe">Скачать для Windows</a>
         <p className="windows-note">Windows 10/11 · 64 бит · мини-погода и значок возле часов. <a href="https://github.com/V-Kozintsev/atmos-weather/releases/latest/download/Atmos-Portable-x64.exe">Версия без установки</a></p>
@@ -140,7 +140,7 @@ export default function AppInstall() {
       </dialog>
       {needRefresh && <div className="pwa-update" role="status">
         <RefreshCw size={20} />
-        <p>Доступна новая версия Atmos</p>
+        <p>Доступна новая версия приложения</p>
         <button onClick={update} disabled={busy}>Обновить</button>
         <button aria-label="Обновить позже" onClick={() => setNeedRefresh(false)}><X size={20} /></button>
       </div>}

@@ -19,7 +19,7 @@ export default function CompactWeather({ city, forecast, fahrenheit, loading, st
     }
   }
   return <main className="compact-weather">
-    <div className="compact-heading"><span>atmos<span>.</span></span><button className="icon-button" aria-label="Открыть полный прогноз" onClick={openFull}><ArrowUpRight size={22} /></button></div>
+    <div className="compact-heading"><span>Погода и что надеть</span><button className="icon-button" aria-label="Открыть полный прогноз" onClick={openFull}><ArrowUpRight size={22} /></button></div>
     <h1>{city.name}</h1>
     <p className="compact-status">{loading ? "Обновляем…" : stale ? "Сохранённый прогноз" : current ? `Данные на ${clock(current.time)}` : "Нет данных — проверьте сеть"}</p>
     {current && <>

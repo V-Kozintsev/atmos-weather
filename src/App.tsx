@@ -253,12 +253,12 @@ export default function App() {
         <a
           href={import.meta.env.BASE_URL}
           className="brand"
-          aria-label="Atmos, главная"
+          aria-label="Погода и что надеть, главная"
         >
           <span className="brand-symbol">
             <CloudSun />
           </span>
-          atmos<span className="brand-dot">.</span>
+          <span className="brand-name">Погода и что надеть</span>
         </a>
         <div className="sidebar-intro">
           <span className="eyebrow">ЧУТЬ БЛИЖЕ К ПРИРОДЕ</span>
@@ -848,7 +848,7 @@ export default function App() {
         </main>
         <footer>
           <span>
-            atmos<span className="brand-dot">.</span>{" "}
+            <span className="brand-name">Погода и что надеть</span>{" "}
             <small>Погода, с которой можно строить планы.</small>
           </span>
           <div>
