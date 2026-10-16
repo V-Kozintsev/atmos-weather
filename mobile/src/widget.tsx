@@ -2,6 +2,8 @@ import { appName } from "../../src/lib/appInfo";
 import { Platform } from "react-native";
 import {
   FlexWidget,
+  OverlapWidget,
+  ImageWidget,
   TextWidget,
   SvgWidget,
   requestWidgetUpdate,
@@ -22,11 +24,12 @@ import {
 } from "../../src/lib/outfit";
 import { read, write } from "./storage";
 import { loadForecast, savedForecast, log } from "./weather";
-import { weatherArtwork } from "./weatherArtwork";
+import { widgetPeriod, widgetWeather, widgetWeatherLabel } from "./widgetScene";
 
 export interface WidgetPreferences extends OutfitPreferences {
   fahrenheit: boolean;
   widgetDark?: boolean;
+  widgetAutoTheme?: boolean;
   widgetClothes?: boolean;
 }
 
@@ -55,112 +58,66 @@ export function widgetHint(forecast: Forecast): string {
   return forecast.current.day ? "Можно собираться на прогулку" : "Вечером пригодится лёгкий слой";
 }
 
-/** @param {object} props - Прогноз, настройки и признак офлайн. @returns {React.JSX.Element} Масштабируемый Android-виджет без постоянной фоновой службы. */
-export function AtmosWidget({
-  forecast,
-  preferences,
-  offline = false,
-  mode = "weather",
-  height = 180,
-  updating = false,
-  status,
-}: {
-  forecast?: Forecast;
-  preferences: WidgetPreferences;
-  offline?: boolean;
-  mode?: WidgetMode;
-  height?: number;
-  updating?: boolean;
-  status?: string;
+const skies = { morning: require("../assets/widget/morning.webp"), day: require("../assets/widget/day.webp"), evening: require("../assets/widget/evening.webp") };
+const symbols = { sun: require("../assets/widget/sun.webp"), moon: require("../assets/widget/moon.webp"), cloud: require("../assets/widget/cloud.webp"), partial: require("../assets/widget/partial.webp"), rain: require("../assets/widget/rain.webp"), snow: require("../assets/widget/snow.webp") };
+
+/** @param {object} props - Прогноз, настройки, размеры и состояние обновления. @returns {React.JSX.Element} Статичный погодный виджет с нативными зонами нажатия. */
+export function AtmosWidget({ forecast, preferences, offline = false, mode = "weather", height = 180, width = 280, updating = false, status }: {
+  forecast?: Forecast; preferences: WidgetPreferences; offline?: boolean; mode?: WidgetMode;
+  height?: number; width?: number; updating?: boolean; status?: string;
 }): React.JSX.Element {
-  const dark = preferences.widgetDark !== false;
-  const foreground = dark ? "#f7f8f2" : "#173b48";
-  const secondary = dark ? "#d0e1e6" : "#42616b";
-  const compact = height < 150;
+  const period = forecast ? widgetPeriod(forecast) : "day";
+  const weather = forecast ? widgetWeather(forecast.current) : "unknown";
+  const dark = preferences.widgetAutoTheme !== false ? period === "evening" || period === "night" : preferences.widgetDark !== false;
+  const foreground = dark ? "#fff6e8" : "#173f39";
+  const secondary = dark ? "#ddd6e4" : "#4a6660";
+  const ink = foreground;
+  const compact = height < 170;
+  const narrow = width < 270;
+  const cardHeight = Math.max(120, Math.min(height, 220));
+  const pad = compact ? 10 : 14;
+  const snowy = weather === "snow" || weather === "blowingSnow";
+  const wet = ["rain", "drizzle", "freezing", "storm", "hail"].includes(weather);
+  const unsettled = wet || snowy || weather === "fog" || weather === "wind" || weather === "unknown";
+  const backdrop = dark ? period === "evening" ? skies.evening : undefined : period === "morning" ? skies.morning : skies.day;
   const showingOutfit = mode === "outfit" && preferences.widgetClothes !== false;
-  const button = dark ? "#dcece7" : "#214b50";
-  const buttonInk = dark ? "#193b43" : "#f5faf7";
-  const hour = forecast?.hours[0];
-  const outfit = hour ? outfitForHour(hour, preferences) : undefined;
-  const updated = forecast
-    ? new Date(forecast.fetchedAt).toLocaleTimeString("ru-RU", {
-        timeZone: forecast.timezone,
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : "";
-  return (
-    <FlexWidget
-      clickAction="OPEN_APP"
-      accessibilityLabel={`${appName}: нажмите погоду, чтобы открыть приложение. Кнопки переключают одежду и обновляют прогноз.`}
-      style={{
-        height: Math.min(Math.max(height, 120), 180),
-        width: "match_parent",
-        padding: compact ? 8 : 10,
-        borderRadius: 22,
-        backgroundGradient: { from: dark ? "#254d56" : "#e0edf0", to: dark ? "#142d3b" : "#c6d9dc", orientation: "TL_BR" },
-        justifyContent: "space-between",
-      }}
-    >
+  const outfit = forecast?.hours[0] ? outfitForHour(forecast.hours[0], preferences) : undefined;
+  const icon = snowy ? symbols.snow : wet ? symbols.rain : weather === "fog" || forecast?.current.code === 3 ? symbols.cloud : forecast?.current.code === 0 ? forecast.current.day ? symbols.sun : symbols.moon : forecast?.current.day ? symbols.partial : symbols.cloud;
+  const overlay = weather === "storm" || weather === "hail" ? '<path d="m55 48-18 26h15l-8 22 29-33H58l11-15Z" fill="#ffd685"/>' : weather === "fog" ? '<path d="M12 61h76M20 73h60M10 85h77" stroke="#c4d7dc" stroke-width="4" stroke-linecap="round"/>' : weather === "wind" || weather === "blowingSnow" ? '<path d="M10 58h65q18 0 12-10M20 72h65M8 84h48q18 0 12 9" fill="none" stroke="#d8e9ed" stroke-width="3" stroke-linecap="round"/>' : weather === "freezing" ? '<path d="M25 72v21m-9-16 18 11m-18 0 18-11M69 72v21m-9-16 18 11m-18 0 18-11" stroke="#bdefff" stroke-width="3"/>' : "";
+  const updated = forecast ? new Date(forecast.fetchedAt).toLocaleTimeString("ru-RU", { timeZone: forecast.timezone, hour: "2-digit", minute: "2-digit" }) : "";
+  const control = { height: 44, borderRadius: 12, borderWidth: 1, borderColor: dark ? "#7d7186" as const : "#a4b9b3" as const, backgroundColor: dark ? "rgba(222, 202, 230, 0.13)" as const : "rgba(255, 255, 255, 0.40)" as const, alignItems: "center" as const, justifyContent: "center" as const };
+  return <OverlapWidget clickAction="OPEN_APP" accessibilityLabel={`${appName}. Нажмите погоду, чтобы открыть приложение.`} style={{ width: "match_parent", height: cardHeight, borderRadius: 24, overflow: "hidden", backgroundColor: dark ? "#142d3c" : "#e2eeec" }}>
+    {backdrop && !unsettled && <ImageWidget image={backdrop} imageWidth={width} imageHeight={cardHeight} resizeMode="stretch" style={{ width: "match_parent", height: "match_parent" }} />}
+    <FlexWidget style={{ width: "match_parent", height: "match_parent", padding: pad, borderRadius: 24, borderWidth: 1, borderColor: dark ? "#8b8baf" : "#f4f5e9", justifyContent: "space-between", ...(unsettled ? { backgroundGradient: { from: dark ? "#263343" as const : "#dce8e9" as const, to: dark ? "#3e445b" as const : "#b9d1da" as const, orientation: "TL_BR" as const } } : {}) }}>
       <FlexWidget style={{ width: "match_parent", flexDirection: "row", alignItems: "center" }}>
-        <FlexWidget style={{ flex: 1 }}><TextWidget text={forecast?.city.name || appName} maxLines={1} style={{ fontSize: 13, fontWeight: "700", color: foreground }} /></FlexWidget>
-        <TextWidget text="MET" style={{ fontSize: 10, color: secondary }} />
+        <FlexWidget style={{ flex: 1 }}><TextWidget text={forecast?.city.name || appName} maxLines={1} style={{ fontSize: 14, fontWeight: "700", color: foreground }} /></FlexWidget>
+        <TextWidget text={offline ? "Сохранено" : updated} style={{ fontSize: 10, color: secondary }} />
       </FlexWidget>
-      {forecast ? (
-        <FlexWidget style={{ width: "match_parent" }}>
-          {!showingOutfit ? <FlexWidget
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              width: "match_parent",
-            }}
-          >
-            <TextWidget
-              text={`${temperature(forecast.current.temperature, preferences.fahrenheit)}°`}
-              style={{ fontSize: compact ? 32 : 38, fontWeight: "600", color: foreground }}
-            />
-            <SvgWidget
-              svg={weatherArtwork(
-                forecast.current.code,
-                !forecast.current.day,
-              )}
-              style={{ width: compact ? 40 : 50, height: compact ? 40 : 50 }}
-            />
-          </FlexWidget> : <FlexWidget style={{ width: "match_parent", paddingVertical: 4 }}>
-            <TextWidget text={outfit?.title || "Что надеть"} maxLines={1} style={{ fontSize: 16, fontWeight: "700", color: foreground }} />
-            <TextWidget text={outfit ? `${outfit.pieces.outer || outfit.pieces.upper} · ${outfit.pieces.shoes}` : "Откройте приложение и загрузите прогноз"} maxLines={compact ? 1 : 2} style={{ fontSize: 13, color: secondary, marginTop: 4 }} />
-          </FlexWidget>}
-          {!compact && !showingOutfit && <TextWidget
-            text={`${offline ? "Сохранено · " : ""}${condition(forecast.current.code)} · ${temperature(forecast.current.feels, preferences.fahrenheit)}° по ощущениям`}
-            maxLines={1}
-            style={{ fontSize: 12, color: secondary }}
-          />}
-          {height >= 170 ? (
-            <TextWidget
-              text={status || (preferences.widgetClothes !== false && !offline ? widgetHint(forecast) : `${offline ? "Сохранено" : "Обновлено"} ${updated} · MET Norway`)}
-              maxLines={1}
-              style={{ fontSize: 12, color: foreground, marginTop: 3 }}
-            />
-          ) : null}
+      {forecast ? <FlexWidget style={{ width: "match_parent", flexDirection: "row", alignItems: "center" }}>
+        <FlexWidget style={{ flex: 1 }}>
+          <TextWidget text={showingOutfit ? outfit?.title || "Ваш образ" : `${temperature(forecast.current.temperature, preferences.fahrenheit)}°`} maxLines={1} style={{ fontSize: showingOutfit ? 18 : compact ? 30 : 40, fontWeight: "600", color: foreground }} />
+          {!compact && <TextWidget text={showingOutfit ? outfit?.pieces.outer || outfit?.pieces.upper || "Что надеть" : widgetWeatherLabel(weather) || condition(forecast.current.code)} maxLines={1} style={{ fontSize: 13, fontWeight: "600", color: foreground }} />}
+          {!compact && !showingOutfit && <TextWidget text={`Ощущается как ${temperature(forecast.current.feels, preferences.fahrenheit)}°`} maxLines={1} style={{ fontSize: 11, color: secondary }} />}
         </FlexWidget>
-      ) : (
-        <TextWidget
-          text="Откройте приложение и загрузите прогноз"
-          style={{ fontSize: 14, color: secondary, marginTop: 8 }}
-        />
-      )}
-      <FlexWidget style={{ width: "match_parent", flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 3 }}>
-        <FlexWidget clickAction={preferences.widgetClothes === false ? "OPEN_APP" : "TOGGLE_OUTFIT"} accessibilityLabel={preferences.widgetClothes === false ? "Открыть приложение" : showingOutfit ? "Показать погоду в виджете" : "Показать одежду в виджете"} style={{ height: 44, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", borderRadius: 22, backgroundColor: button }}>
-          <SvgWidget svg={widgetActionIcon(preferences.widgetClothes === false ? "open" : showingOutfit ? "weather" : "outfit", buttonInk)} style={{ width: 18, height: 18, marginRight: 7 }} />
-          <TextWidget text={preferences.widgetClothes === false ? "Открыть" : showingOutfit ? "Погода" : "Что надеть"} style={{ fontSize: 12, fontWeight: "600", color: buttonInk }} />
+        <OverlapWidget style={{ width: compact ? 45 : 68, height: compact ? 45 : 68 }}>
+          {!forecast.current.day && forecast.current.code > 0 && forecast.current.code <= 2 && <ImageWidget image={symbols.moon} imageWidth={compact ? 32 : 48} imageHeight={compact ? 32 : 48} style={{ width: compact ? 32 : 48, height: compact ? 32 : 48, marginLeft: compact ? 13 : 20 }} />}
+          <ImageWidget image={icon} imageWidth={compact ? 45 : 68} imageHeight={compact ? 45 : 68} style={{ width: "match_parent", height: "match_parent" }} />
+          {!!overlay && <SvgWidget svg={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">${overlay}</svg>`} style={{ width: "match_parent", height: "match_parent" }} />}
+        </OverlapWidget>
+      </FlexWidget> : <TextWidget text="Откройте приложение и загрузите прогноз" maxLines={2} style={{ fontSize: 13, color: secondary }} />}
+      <FlexWidget style={{ width: "match_parent", flexDirection: "row", alignItems: "center", borderTopWidth: 1, borderTopColor: dark ? "#6e687a" : "#bbc8c1", paddingTop: compact ? 3 : 6 }}>
+        <FlexWidget style={{ flex: 1, paddingRight: 6 }}>
+          {!compact && <TextWidget text={preferences.widgetClothes === false ? "ПРОГНОЗ" : "ЧТО НАДЕТЬ"} style={{ fontSize: 8, color: secondary, letterSpacing: .5 }} />}
+          <TextWidget text={status || (forecast ? preferences.widgetClothes === false ? offline ? "Сохранённая погода" : "Погода в городе" : widgetHint(forecast) : "Загрузить погоду")} maxLines={compact ? 1 : 2} style={{ fontSize: compact ? 10 : 11, color: foreground }} />
         </FlexWidget>
-        <FlexWidget clickAction="REFRESH_WEATHER" accessibilityLabel={updating ? "Прогноз обновляется" : "Обновить прогноз"} style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: dark ? "#698991" : "#9bbcc3", alignItems: "center", justifyContent: "center", backgroundColor: dark ? "#2d505c" : "#edf5f4" }}>
-          <SvgWidget svg={widgetActionIcon(updating ? "pending" : "refresh", foreground)} style={{ width: 21, height: 21 }} />
+        <FlexWidget clickAction={preferences.widgetClothes === false ? "OPEN_APP" : "TOGGLE_OUTFIT"} accessibilityLabel={preferences.widgetClothes === false ? "Открыть приложение" : showingOutfit ? "Показать погоду в виджете" : "Показать одежду в виджете"} style={{ ...control, width: narrow ? 76 : 84, marginRight: 6, flexDirection: "row" }}>
+          <TextWidget text={preferences.widgetClothes === false ? "Открыть" : showingOutfit ? "Погода" : "Образ"} style={{ fontSize: 12, fontWeight: "600", color: ink }} />
+          <SvgWidget svg={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6" fill="none" stroke="${ink}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`} style={{ width: 14, height: 14, marginLeft: 3 }} />
         </FlexWidget>
+        <FlexWidget clickAction="REFRESH_WEATHER" accessibilityLabel={updating ? "Прогноз обновляется" : "Обновить прогноз"} style={{ ...control, width: 44 }}><SvgWidget svg={widgetActionIcon(updating ? "pending" : "refresh", ink)} style={{ width: 20, height: 20 }} /></FlexWidget>
       </FlexWidget>
     </FlexWidget>
-  );
+  </OverlapWidget>;
 }
 
 /** @returns {Promise<WidgetPreferences>} Проверенные настройки приложения для фонового процесса. */
@@ -182,6 +139,7 @@ async function widgetPreferences(): Promise<WidgetPreferences> {
         : "balanced",
     fahrenheit: data?.fahrenheit === true,
     widgetDark: data?.widgetDark !== false,
+    widgetAutoTheme: data?.widgetAutoTheme !== false,
     widgetClothes: data?.widgetClothes !== false,
   };
 }
@@ -201,7 +159,7 @@ export async function widgetTaskHandler(
   const preferences = await widgetPreferences();
   let forecast = await savedForecast(city);
   let offline = true;
-  if (forecast && props.clickAction === "REFRESH_WEATHER") props.renderWidget(<AtmosWidget forecast={forecast} preferences={preferences} offline={true} mode={mode} height={props.widgetInfo.height} updating />);
+  if (forecast && props.clickAction === "REFRESH_WEATHER") props.renderWidget(<AtmosWidget forecast={forecast} preferences={preferences} offline={true} mode={mode} height={props.widgetInfo.height} width={props.widgetInfo.width} updating />);
   try {
     if (props.clickAction !== "TOGGLE_OUTFIT" || !forecast) {
       forecast = await loadForecast(city, new AbortController().signal);
@@ -216,7 +174,7 @@ export async function widgetTaskHandler(
       preferences={preferences}
       offline={offline}
       mode={mode}
-      height={props.widgetInfo.height}
+      height={props.widgetInfo.height} width={props.widgetInfo.width}
       status={props.clickAction === "REFRESH_WEATHER" ? offline ? "Нет сети — сохранённая погода" : "Прогноз актуален" : undefined}
     />,
   );
@@ -238,7 +196,7 @@ export async function syncWidgets(
           preferences={preferences}
           offline={offline}
           mode={await read<WidgetMode>(`atmos-widget-mode:${info.widgetId}`, "weather")}
-          height={info.height}
+          height={info.height} width={info.width}
         />
       ),
     });

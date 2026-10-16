@@ -7,7 +7,7 @@ import type { City } from "../../src/lib/weather";
 
 type Glyph = keyof typeof Ionicons.glyphMap;
 interface SettingsPreferences {
-  cityBackground: boolean; sceneMode: SceneMode; widgetDark: boolean;
+  cityBackground: boolean; sceneMode: SceneMode; widgetDark: boolean; widgetAutoTheme: boolean;
   widgetClothes: boolean; fahrenheit: boolean; diagnostics: boolean;
 }
 interface Props {
@@ -68,7 +68,8 @@ export function SettingsScreen({ preferences: p, onChange, version, checking, on
     </Group>
     <Group label="ВИДЖЕТ">
       {Platform.OS === "android" ? <Row icon="add-circle-outline" label="Добавить на главный экран" hint="Погода и одежда всегда под рукой" onPress={onWidget} /> : <View style={styles.details}><Text style={styles.hint}>Виджет доступен в Android-приложении.</Text></View>}
-      <Row icon="moon-outline" label="Тёмный виджет" value={p.widgetDark} onValueChange={(widgetDark) => onChange({ widgetDark })} />
+      <Row icon="time-outline" label="По времени города" hint="Утро, день, вечер и ночь" value={p.widgetAutoTheme} onValueChange={(widgetAutoTheme) => onChange({ widgetAutoTheme })} />
+      {!p.widgetAutoTheme && <Row icon="moon-outline" label="Тёмный виджет" value={p.widgetDark} onValueChange={(widgetDark) => onChange({ widgetDark })} />}
       <Row icon="shirt-outline" label="Одежда в виджете" value={p.widgetClothes} onValueChange={(widgetClothes) => onChange({ widgetClothes })} />
       <Details label="Как разместить виджет" icon="help-circle-outline"><Text style={styles.note}>Нужен свободный участок примерно 3 × 2 клетки на текущем рабочем экране. Если места нет: зажмите пустое место на другом экране → Виджеты → Погода и что надеть и перетащите виджет. Переносить значок приложения не нужно.</Text><Text style={styles.note}>Обновляется примерно раз в 30 минут. Android может откладывать обновление для экономии заряда.</Text></Details>
     </Group>

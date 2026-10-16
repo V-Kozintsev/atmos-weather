@@ -25,6 +25,7 @@ export const WeatherIcon = memo(function WeatherIcon({
   const [column, row] = weatherTile(code, night);
   return (
     <View accessible={false} pointerEvents="none" style={{ width: size, height: size, overflow: "hidden", flexShrink: 0 }}>
+      {night && code > 0 && code <= 2 && <Image source={require("../assets/widget/moon.webp")} resizeMode="contain" fadeDuration={0} style={{ position: "absolute", width: size * .75, height: size * .75, left: size * .25, top: -size * .12 }} />}
       <Image source={atlas} resizeMode="stretch" fadeDuration={0} style={{ position: "absolute", width: size * 3, height: size * 2, left: -column * size, top: -row * size }} />
       {code >= 95 && <SvgXml width={size} height={size} style={{ position: "absolute" }} xml={'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="m54 48-16 26h15l-7 20 26-31H57l9-15Z" fill="#ffd479"/></svg>'} />}
       {(code === 45 || code === 48) && <SvgXml width={size} height={size} style={{ position: "absolute" }} xml={'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g stroke="#a6bbc4" stroke-width="4" stroke-linecap="round"><path d="M18 70h64M25 80h50M18 90h64"/></g></svg>'} />}

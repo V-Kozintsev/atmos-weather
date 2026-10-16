@@ -49,6 +49,7 @@ interface Preferences extends OutfitPreferences {
   fahrenheit: boolean;
   diagnostics: boolean;
   widgetDark: boolean;
+  widgetAutoTheme: boolean;
   widgetClothes: boolean;
   cityBackground: boolean;
   sceneMode: SceneMode;
@@ -59,6 +60,7 @@ const initial: Preferences = {
   fahrenheit: false,
   diagnostics: false,
   widgetDark: true,
+  widgetAutoTheme: true,
   widgetClothes: true,
   cityBackground: true,
   sceneMode: "auto",
@@ -146,6 +148,7 @@ function Atmos(): React.JSX.Element {
         fahrenheit: saved.fahrenheit === true,
         diagnostics: saved.diagnostics === true,
         widgetDark: saved.widgetDark !== false,
+        widgetAutoTheme: saved.widgetAutoTheme !== false,
         widgetClothes: saved.widgetClothes !== false,
         cityBackground: saved.cityBackground !== false,
         sceneMode: sceneModes.some(([mode]) => mode === saved.sceneMode) ? saved.sceneMode! : "auto",
@@ -472,7 +475,7 @@ function Atmos(): React.JSX.Element {
                   <Text style={s.dayName}>
                     {index === 0 ? "Сегодня" : weekday(day.date)}
                   </Text>
-                  <View style={s.weatherIconWell}><WeatherIcon code={day.code} size={36} /></View>
+                  <View style={s.weatherIconWell}><WeatherIcon code={index === 0 ? forecast.current.code : day.code} night={index === 0 && !forecast.current.day} size={36} /></View>
                   <Text style={s.text}>
                     {degrees(day.min)} / {degrees(day.max)}
                   </Text>
