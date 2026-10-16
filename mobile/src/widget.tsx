@@ -247,11 +247,13 @@ export async function syncWidgets(
   }
 }
 
-/** @returns {Promise<boolean>} Запрашивает системное подтверждение установки виджета. */
+/** @returns {Promise<boolean>} Передан ли запрос оболочке; это не подтверждение размещения виджета. */
 export async function pinWidget(): Promise<boolean> {
   if (Platform.OS !== "android") return false;
   try {
-    return await requestPinWidget({ widgetName: "AtmosWeather" });
+    const requested = await requestPinWidget({ widgetName: "AtmosWeather" });
+    log("widget pin requested", { requested });
+    return requested;
   } catch {
     log("widget pin unavailable");
     return false;
