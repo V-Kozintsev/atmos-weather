@@ -2,6 +2,7 @@ import { Platform } from "react-native";
 import { parseMetForecast, type MetResponse } from "../../src/lib/met";
 import { isCity, type City, type Forecast } from "../../src/lib/weather";
 import rows from "../../public/cities.json";
+import countryNames from "./countryNames.json";
 import { read, write } from "./storage";
 
 const cache = new Map<string, { forecast: Forecast; expires: number }>();
@@ -141,7 +142,8 @@ export async function loadForecast(
 export function searchCities(query: string): City[] {
   const normalized = query.trim().toLocaleLowerCase("ru-RU");
   if (normalized.length < 2) return [];
-  const regions = new Intl.DisplayNames(["ru"], { type: "region" });
+  // Hermes не поддерживает Intl.DisplayNames; названия стран хранятся вместе со справочником.
+  const countries: Record<string, string> = countryNames;
   /** @param {[string, string, string, number, number, string]} row - Строка города. @returns {number} Приоритет точного названия перед совпадением в альтернативных именах. */
   function rank(row: [string, string, string, number, number, string]): number {
     const name = row[1].toLocaleLowerCase("ru-RU");
@@ -154,7 +156,7 @@ export function searchCities(query: string): City[] {
     .map(([id, name, country, latitude, longitude]) => ({
       id,
       name,
-      country: regions.of(country) || country,
+      country: countries[country] || country,
       latitude,
       longitude,
     }));
