@@ -72,13 +72,21 @@ export function useAppUpdates(enabled: boolean) {
     try { unsubscribe = listenForUpdates(onInstallState); }
     catch { log("update listener unavailable"); }
     void check();
-    const subscription = AppState.addEventListener("change", (phase) => {
-      if (phase === "active" && (Date.now() - lastCheck.current >= 6 * 60 * 60_000 || ["downloading", "installing"].includes(latest.current.status))) {
+    /** @returns {void} Проверяет обновление в открытом приложении; после сбоя сети повторяет раньше. */
+    function checkWhenActive(): void {
+      const retryAfter = latest.current.status === "unavailable" ? 60_000 : 15 * 60_000;
+      if (AppState.currentState === "active" && (Date.now() - lastCheck.current >= retryAfter || ["downloading", "installing"].includes(latest.current.status))) {
         if (["downloading", "installing"].includes(latest.current.status)) latest.current = { ...latest.current, status: "idle" };
         void check();
       }
+    }
+    const subscription = AppState.addEventListener("change", (phase) => {
+      if (phase === "active") checkWhenActive();
     });
-    return () => { alive.current = false; unsubscribe?.(); subscription.remove(); };
+    const timer = setInterval(() => {
+      if (!["downloading", "installing"].includes(latest.current.status)) checkWhenActive();
+    }, 60_000);
+    return () => { alive.current = false; clearInterval(timer); unsubscribe?.(); subscription.remove(); };
   }, [enabled, check, publish]);
 
   /** @returns {Promise<void>} Откладывает предложение той же версии на сутки, сохраняя доступ к ручной проверке. */

@@ -344,6 +344,7 @@ function Atmos(): React.JSX.Element {
           </Text>
         </Pressable>
       </View>
+      <UpdateCard state={updates.state} onUpdate={() => void updates.update()} onDismiss={() => void updates.dismiss()} onStore={() => void openLink(reviewUrl)} />
       <ScrollView
         key={`${tab}:${city?.id}`}
         style={s.flex}
@@ -357,7 +358,6 @@ function Atmos(): React.JSX.Element {
           />
         }
       >
-        <UpdateCard state={updates.state} onUpdate={() => void updates.update()} onDismiss={() => void updates.dismiss()} onStore={() => void openLink(reviewUrl)} />
         {notice ? (
           <View style={s.notice}>
             <Text accessibilityRole="alert" style={s.text}>
