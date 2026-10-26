@@ -1,3 +1,4 @@
+import { useTimeTheme } from "./timeTheme";
 import { useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Animated, Image, Modal, PanResponder, Pressable, StyleSheet, View, type GestureResponderEvent, type ImageSourcePropType, type LayoutChangeEvent } from "react-native";
@@ -97,6 +98,7 @@ function PhotoLightbox({ source, onClose }: { source: ImageSourcePropType; onClo
 
 /** @param {object} props - Фото, оформление, доступное описание и содержимое карточки. @returns {React.JSX.Element} Нажимаемое превью и просмотр на весь экран. */
 export function OutfitPhoto({ source, editorial = false, height, description, children }: { source: ImageSourcePropType; editorial?: boolean; height?: number; description?: string; children?: ReactNode }): React.JSX.Element {
+  const theme = useTimeTheme();
   const [visible, setVisible] = useState(false);
   /** @returns {void} Открывает фотографию с исходным масштабом. */
   function openPhoto(): void { setVisible(true); }
@@ -107,7 +109,7 @@ export function OutfitPhoto({ source, editorial = false, height, description, ch
       <Pressable accessibilityRole="button" accessibilityLabel={description ? `${description}. Открыть фото образа` : "Открыть фото образа"} accessibilityHint="Полноэкранный просмотр с приближением двумя пальцами" onPress={openPhoto} style={[s.photo, editorial && styles.editorial, height !== undefined && { height }]}>
         <Image source={source} style={[s.model, editorial && styles.editorialModel]} resizeMode="contain" />
         {children}
-        <View pointerEvents="none" style={[styles.badge, editorial && styles.editorialBadge]}><Ionicons name="expand-outline" size={16} color="#21483e" /><Text style={[s.caption, editorial && styles.badgeText]}>Рассмотреть</Text></View>
+        <View pointerEvents="none" style={[styles.badge, editorial && styles.editorialBadge]}><Ionicons name="expand-outline" size={16} color={editorial ? theme.primary : "#21483e"} /><Text style={[s.caption, editorial && styles.badgeText, editorial && { color: theme.primary }]}>Рассмотреть</Text></View>
       </Pressable>
       <Modal visible={visible} animationType="fade" onRequestClose={closePhoto}>{visible && <PhotoLightbox source={source} onClose={closePhoto} />}</Modal>
     </>

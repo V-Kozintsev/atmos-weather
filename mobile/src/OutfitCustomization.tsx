@@ -1,3 +1,4 @@
+import { useTimeTheme, type TimeTheme } from "./timeTheme";
 import { Image, Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
 import { Text, fontNames } from "./typography";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -19,6 +20,8 @@ const temperatures: WarmthPreference[] = ["warmer", "balanced", "lighter"];
 
 /** @param {object} props - Чувствительность к холоду и обработчик выбора. @returns {React.JSX.Element} Доступная шкала с тремя именованными положениями без заливки сегментов. */
 function WarmthScale({ value, onChange }: { value: WarmthPreference; onChange: (next: WarmthPreference) => void }): React.JSX.Element {
+  const theme = useTimeTheme();
+  const styles = createStyles(theme);
   return <View style={styles.group}>
     <Text style={styles.groupLabel}>Как вы переносите холод</Text>
     <View style={styles.scale} accessibilityRole="radiogroup" accessibilityLabel="Чувствительность к холоду">
@@ -34,9 +37,11 @@ function WarmthScale({ value, onChange }: { value: WarmthPreference; onChange: (
 
 /** @param {object} props - Магазин, название вещи и переход к поиску. @returns {React.JSX.Element} Сохранённая брендовая иконка со стрелкой внешней ссылки и зоной касания 44px. */
 function StoreLink({ store, item, onPress }: { store: "Ozon" | "WB"; item: string; onPress: () => void }): React.JSX.Element {
+  const theme = useTimeTheme();
+  const styles = createStyles(theme);
   return <Pressable accessibilityRole="link" accessibilityLabel={`Найти похожее: ${item} в ${store === "WB" ? "Wildberries" : "Ozon"}`} accessibilityHint="Откроется поиск в магазине" onPress={onPress} style={styles.storeTouch}>
     <Image source={storeLogos[store]} resizeMode="contain" fadeDuration={0} accessible={false} style={styles.storeLogo} />
-    <Ionicons name="arrow-forward-outline" color="#60776a" size={10} style={styles.externalArrow} />
+    <Ionicons name="arrow-forward-outline" color={theme.muted} size={10} style={styles.externalArrow} />
   </Pressable>;
 }
 
@@ -45,6 +50,8 @@ export function OutfitCustomization({ advice, gender, occasion, warmth, settings
   advice: OutfitAdvice; gender: "woman" | "man"; occasion: OutfitOccasion; warmth: WarmthPreference; settingsVisible?: boolean;
   onOccasionChange: (value: OutfitOccasion) => void; onWarmthChange: (value: WarmthPreference) => void; onOpen: (url: string) => Promise<void>;
 }): React.JSX.Element {
+  const theme = useTimeTheme();
+  const styles = createStyles(theme);
   const { fontScale } = useWindowDimensions();
   const items = outfitItems(advice, gender, occasion);
   return <View style={styles.content}>
@@ -64,7 +71,7 @@ export function OutfitCustomization({ advice, gender, occasion, warmth, settings
     </View>
     <View>
       {items.map((item) => <View key={`${item.label}:${item.text}`} style={[styles.item, fontScale > 1.25 && styles.itemWrapped]}>
-        <View style={styles.thumbnail}>{item.photo ? <ClothingItem item={item.photo} size={50} /> : <Ionicons name="bag-handle-outline" size={24} color="#31574a" />}</View>
+        <View style={styles.thumbnail}>{item.photo ? <ClothingItem item={item.photo} size={50} /> : <Ionicons name="bag-handle-outline" size={24} color={theme.primary} />}</View>
         <View style={s.flex}><Text style={styles.itemName}>{item.text}</Text><Text style={styles.category}>{item.label}</Text></View>
         <View style={[styles.links, fontScale > 1.25 && styles.linksWrapped]}>
           <StoreLink store="Ozon" item={item.text} onPress={() => void onOpen(outfitSearchUrl("ozon", item.text, gender))} />
@@ -76,29 +83,30 @@ export function OutfitCustomization({ advice, gender, occasion, warmth, settings
   </View>;
 }
 
-const styles = StyleSheet.create({
+/** @param {TimeTheme} theme - Палитра времени суток. @returns {object} Стили с общими цветами интерфейса. */
+const createStyles = (theme: TimeTheme) => StyleSheet.create({
   content: { gap: 12 },
-  settings: { gap: 16, borderBottomWidth: 1, borderBottomColor: "#d4dbcd", paddingBottom: 18, marginBottom: 4 },
+  settings: { gap: 16, borderBottomWidth: 1, borderBottomColor: theme.divider, paddingBottom: 18, marginBottom: 4 },
   group: { gap: 8 },
-  groupLabel: { fontSize: 13, lineHeight: 20, color: "#6b796e" },
-  divider: { height: 1, backgroundColor: "#d7ddcf" },
+  groupLabel: { fontSize: 13, lineHeight: 20, color: theme.muted },
+  divider: { height: 1, backgroundColor: theme.divider },
   scale: { flexDirection: "row", alignItems: "flex-start", position: "relative", paddingTop: 2 },
-  scaleLine: { position: "absolute", left: "16.666%", right: "16.666%", top: 13, height: 1, backgroundColor: "#9eafa0" },
+  scaleLine: { position: "absolute", left: "16.666%", right: "16.666%", top: 13, height: 1, backgroundColor: theme.accent },
   scaleChoice: { flex: 1, minHeight: 60, alignItems: "center", gap: 8, paddingHorizontal: 3, paddingBottom: 4 },
-  dotRing: { width: 22, height: 22, borderWidth: 1, borderColor: "#a2b1a4", borderRadius: 11, backgroundColor: "#f7f8f2", alignItems: "center", justifyContent: "center" },
-  dotRingSelected: { borderColor: "#527768" },
-  dot: { width: 14, height: 14, borderRadius: 7, backgroundColor: "#21483e" },
-  scaleLabel: { fontSize: 12, lineHeight: 18, color: "#6b796e", textAlign: "center" },
-  scaleLabelSelected: { color: "#21483e", fontWeight: "600" },
+  dotRing: { width: 22, height: 22, borderWidth: 1, borderColor: theme.accent, borderRadius: 11, backgroundColor: theme.page, alignItems: "center", justifyContent: "center" },
+  dotRingSelected: { borderColor: theme.accent },
+  dot: { width: 14, height: 14, borderRadius: 7, backgroundColor: theme.primary },
+  scaleLabel: { fontSize: 12, lineHeight: 18, color: theme.muted, textAlign: "center" },
+  scaleLabelSelected: { color: theme.primary, fontWeight: "600" },
   heading: { gap: 5, paddingTop: 4 },
-  title: { fontFamily: fontNames.heading, fontSize: 26, lineHeight: 32, fontWeight: "600", color: "#21483e" },
-  explanation: { fontSize: 13, lineHeight: 20, color: "#5e6c62" },
-  hint: { fontSize: 11, lineHeight: 17, color: "#879287" },
-  item: { minHeight: 64, flexDirection: "row", alignItems: "center", gap: 9, paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: "#dce1d5" },
+  title: { fontFamily: fontNames.heading, fontSize: 26, lineHeight: 32, fontWeight: "600", color: theme.primary },
+  explanation: { fontSize: 13, lineHeight: 20, color: theme.muted },
+  hint: { fontSize: 11, lineHeight: 17, color: theme.muted },
+  item: { minHeight: 64, flexDirection: "row", alignItems: "center", gap: 9, paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: theme.divider },
   itemWrapped: { flexWrap: "wrap" },
   thumbnail: { width: 50, height: 50, alignItems: "center", justifyContent: "center" },
-  itemName: { fontSize: 13, lineHeight: 19, color: "#21483e" },
-  category: { fontSize: 10, lineHeight: 15, color: "#879287", marginTop: 1 },
+  itemName: { fontSize: 13, lineHeight: 19, color: theme.primary },
+  category: { fontSize: 10, lineHeight: 15, color: theme.muted, marginTop: 1 },
   links: { flexDirection: "row", alignItems: "center", gap: 6 },
   linksWrapped: { width: "100%", justifyContent: "flex-end" },
   storeTouch: { minHeight: 44, minWidth: 48, alignItems: "center", justifyContent: "center", paddingRight: 5 },

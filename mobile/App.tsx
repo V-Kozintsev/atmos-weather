@@ -1,3 +1,4 @@
+import { TimeThemeContext, baseTheme, useSceneTheme } from "./src/timeTheme";
 import { useEffect, useState } from "react";
 import { useFonts } from "expo-font";
 import { fontAssets } from "./src/typography";
@@ -99,6 +100,8 @@ function Atmos(): React.JSX.Element {
   const [locating, setLocating] = useState(false);
   const [notice, setNotice] = useState("");
   const { forecast, loading, stale, error, refresh } = useForecast(city);
+  const sceneTheme = useSceneTheme(forecast, preferences.sceneMode);
+  const theme = tab === "settings" ? baseTheme : sceneTheme;
   const cityPhoto = useCityPhoto(city, preferences.cityBackground && !!city && !cityPhotoKey(city));
   const updates = useAppUpdates(hydrated);
   const reviews = useReviews(!!forecast && !stale && !loading);
@@ -314,11 +317,11 @@ function Atmos(): React.JSX.Element {
         ];
 
   return (
-    <SafeAreaView style={s.safe} edges={["top", "left", "right", "bottom"]}>
-      <StatusBar style="dark" />
+    <TimeThemeContext.Provider value={theme}><SafeAreaView style={[s.safe, { backgroundColor: theme.page }]} edges={["top", "left", "right", "bottom"]}>
+      <StatusBar style={theme.dark && !searchVisible ? "light" : "dark"} />
       <View style={[s.header, wide && s.bodyWide, tab === "weather" && s.headerWeather]}>
         <View style={{ flexShrink: 1 }}>
-          <Text style={tab === "outfit" ? s.outfitPageTitle : tab === "weather" ? s.weatherBrand : s.brand}>{tab === "outfit" ? "Что надеть" : appName}</Text>
+          <Text style={[tab === "outfit" ? s.outfitPageTitle : tab === "weather" ? s.weatherBrand : s.brand, { color: theme.primary }]}>{tab === "outfit" ? "Что надеть" : appName}</Text>
         </View>
         <Pressable
           accessibilityRole="button"
@@ -326,8 +329,8 @@ function Atmos(): React.JSX.Element {
           style={[s.row, { minHeight: 44, maxWidth: "43%", gap: 6 }]}
           onPress={() => setSearchVisible(true)}
         >
-          <Ionicons name="location-outline" size={20} color="#21483e" />
-          <Text style={[s.text, { flexShrink: 1 }, tab === "weather" && s.weatherLocation]}>
+          <Ionicons name="location-outline" size={20} color={theme.primary} />
+          <Text style={[s.text, { flexShrink: 1 }, tab === "weather" && s.weatherLocation, { color: theme.text }]}>
             {city?.name || "Загрузка"}
           </Text>
         </Pressable>
@@ -342,7 +345,8 @@ function Atmos(): React.JSX.Element {
           <RefreshControl
             refreshing={loading && !!forecast}
             onRefresh={refresh}
-            tintColor="#21483e"
+            tintColor={theme.primary}
+            colors={[theme.primary]}
           />
         }
       >
@@ -424,7 +428,7 @@ function Atmos(): React.JSX.Element {
               />
         </SettingsScreen>}
         {forecast && tab === "outfit" && (
-          <Text style={s.caption}>
+          <Text style={[s.caption, { color: theme.muted }]}>
             {stale ? "Сохранено" : "Обновлено"}{" "}
             {new Date(forecast.fetchedAt).toLocaleTimeString("ru-RU", {
               timeZone: forecast.timezone,
@@ -466,7 +470,7 @@ function Atmos(): React.JSX.Element {
           </View>
         )}
       </ScrollView>
-      <View style={[s.nav, compactWeather && s.navCompact]}>
+      <View style={[s.nav, compactWeather && s.navCompact, { backgroundColor: theme.page, borderTopColor: theme.divider }]}>
         {tabs.map(([value, label, glyph]) => (
           <Pressable
             key={value}
@@ -480,11 +484,11 @@ function Atmos(): React.JSX.Element {
               <Ionicons
                 name={glyph}
                 size={25}
-                color={tab === value ? "#21483e" : "#88938a"}
+                color={tab === value ? theme.primary : theme.muted}
               />
             </View>
-            <Text style={[s.navLabel, tab === value && s.navLabelSelected]}>{label}</Text>
-            <View style={[s.navIndicator, tab === value && s.navIndicatorSelected]} />
+            <Text style={[s.navLabel, tab === value && s.navLabelSelected, { color: tab === value ? theme.primary : theme.muted }]}>{label}</Text>
+            <View style={[s.navIndicator, tab === value && s.navIndicatorSelected, tab === value && { backgroundColor: theme.accent }]} />
           </Pressable>
         ))}
       </View>
@@ -537,7 +541,7 @@ function Atmos(): React.JSX.Element {
           </ScrollView>
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+    </SafeAreaView></TimeThemeContext.Provider>
   );
 }
 

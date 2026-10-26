@@ -1,3 +1,4 @@
+import { useTimeTheme, type TimeTheme } from "./timeTheme";
 import { useState } from "react";
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -18,6 +19,8 @@ interface Props {
 
 /** @param {Props} props - Живой прогноз, комплект одежды и действия главного экрана. @returns {React.JSX.Element} Единый экран с растворяющимся фото, открытой композицией вещей и почасовыми колонками. */
 export function WeatherHome({ forecast, advice, gender, occasion, period, eveningHour, eveningHint, fahrenheit, background, sceneMode, photo, stale, favorite, dayIndex, hours, wide, onFavorite, onOutfit, onDay, onShare, onRefresh, refreshing, onSource }: Props): React.JSX.Element {
+  const theme = useTimeTheme();
+  const styles = createStyles(theme);
   const { width, height, fontScale } = useWindowDimensions();
   const dense = !wide && height < 920 && fontScale <= 1.15;
   const [weekOpen, setWeekOpen] = useState(false);
@@ -35,7 +38,7 @@ export function WeatherHome({ forecast, advice, gender, occasion, period, evenin
   return <View style={[styles.layout, wide && styles.wide]}>
     <View style={[styles.column, wide && styles.mainColumn]}>
       <View style={[styles.hero, dense && styles.heroDense]}>
-        <CityBackdrop forecast={forecast} mode={sceneMode} photo={photo} photosEnabled={background} seamless />
+        <CityBackdrop forecast={forecast} mode={sceneMode} photo={photo} photosEnabled={background} pageColor={theme.page} seamless />
         <View style={[styles.heroContent, dense && styles.heroContentDense]}>
           {stale && <Text style={styles.saved}>СОХРАНЁННЫЙ ПРОГНОЗ</Text>}
           <View style={styles.reading}>
@@ -63,18 +66,18 @@ export function WeatherHome({ forecast, advice, gender, occasion, period, evenin
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hours}>
             {hours.map((hour, index) => <View key={hour.time} style={[styles.hour, { minWidth: hourWidth }, index % 4 === 3 && styles.hourLast]}>
               <Text style={styles.hourTime}>{clock(hour.time)}</Text>
-              <WeatherIcon code={hour.code} night={!hour.day} surface="light" size={dense ? 36 : 42} />
+              <WeatherIcon code={hour.code} night={!hour.day} surface={theme.dark ? "dark" : "light"} size={dense ? 36 : 42} />
               <Text style={styles.hourDegrees}>{degrees(hour.temperature)}</Text>
             </View>)}
           </ScrollView>
         </View>
         <Pressable accessibilityRole="button" accessibilityState={{ expanded: weekOpen }} onPress={() => setWeekOpen(!weekOpen)} style={styles.weekToggle}>
-          <Text style={styles.weekTitle}>На неделю</Text><Ionicons name={weekOpen ? "chevron-up" : "chevron-forward"} size={22} color="#21483e" />
+          <Text style={styles.weekTitle}>На неделю</Text><Ionicons name={weekOpen ? "chevron-up" : "chevron-forward"} size={22} color={theme.primary} />
         </Pressable>
         {weekOpen && <View style={styles.week}>
           {forecast.days.map((value, index) => <Pressable accessibilityRole="button" accessibilityState={{ selected: selectedIndex === index }} accessibilityLabel={`${index === 0 ? "Сегодня" : weekday(value.date)}: ${degrees(value.min)} — ${degrees(value.max)}. Показать прогноз по часам`} key={value.date} onPress={() => onDay(index)} style={[styles.day, selectedIndex === index && styles.daySelected]}>
             <Text style={[styles.dayName, selectedIndex === index && styles.dayNameSelected]}>{index === 0 ? "Сегодня" : weekday(value.date)}</Text>
-            <WeatherIcon code={index === 0 ? forecast.current.code : value.code} night={index === 0 && !forecast.current.day} surface="light" size={34} />
+            <WeatherIcon code={index === 0 ? forecast.current.code : value.code} night={index === 0 && !forecast.current.day} surface={theme.dark ? "dark" : "light"} size={34} />
             <Text style={styles.dayTemperature}>{degrees(value.min)} / {degrees(value.max)}</Text>
           </Pressable>)}
           <View style={styles.details}>
@@ -85,14 +88,15 @@ export function WeatherHome({ forecast, advice, gender, occasion, period, evenin
             <Text style={styles.source}>{stale ? "Сохранено" : "Обновлено"} {new Date(forecast.fetchedAt).toLocaleTimeString("ru-RU", { timeZone: forecast.timezone, hour: "2-digit", minute: "2-digit" })}</Text>
             {background && photo && <Pressable accessibilityRole="link" onPress={() => onSource(photo.source)}><Text style={styles.source}>Фото: {photo.author} · {photo.license} ↗</Text></Pressable>}
           </View>
-          <Pressable accessibilityRole="button" onPress={onShare} style={styles.share}><Ionicons name="share-outline" color="#21483e" size={19} /><Text style={styles.detailText}>Поделиться прогнозом</Text></Pressable>
+          <Pressable accessibilityRole="button" onPress={onShare} style={styles.share}><Ionicons name="share-outline" color={theme.primary} size={19} /><Text style={styles.detailText}>Поделиться прогнозом</Text></Pressable>
         </View>}
       </View>
     </View>
   </View>;
 }
 
-const styles = StyleSheet.create({
+/** @param {TimeTheme} theme - Палитра времени суток. @returns {object} Стили с общими цветами интерфейса. */
+const createStyles = (theme: TimeTheme) => StyleSheet.create({
   layout: { width: "100%" },
   wide: { flexDirection: "row", alignItems: "flex-start", gap: 32 },
   column: { minWidth: 0, width: "100%" },
@@ -116,24 +120,24 @@ const styles = StyleSheet.create({
   metricDense: { fontSize: 12, lineHeight: 18 },
   saved: { fontSize: 10, lineHeight: 16, fontWeight: "700", letterSpacing: 1.2, color: "#fff", marginBottom: 5 },
   favorite: { position: "absolute", right: 10, top: 9, width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  sectionTitle: { fontSize: 24, lineHeight: 31, fontWeight: "700", color: "#21483e", marginBottom: 13, letterSpacing: -.4 },
+  sectionTitle: { fontSize: 24, lineHeight: 31, fontWeight: "700", color: theme.primary, marginBottom: 13, letterSpacing: -.4 },
   sectionTitleDense: { fontSize: 22, lineHeight: 28, marginBottom: 10 },
   hours: { paddingTop: 1, paddingBottom: 13 },
-  hour: { alignItems: "center", gap: 5, paddingHorizontal: 9, borderRightWidth: 1, borderRightColor: "#d5dacc" },
+  hour: { alignItems: "center", gap: 5, paddingHorizontal: 9, borderRightWidth: 1, borderRightColor: theme.divider },
   hourLast: { borderRightWidth: 0 },
-  hourTime: { fontSize: 12, lineHeight: 18, color: "#526259" },
-  hourDegrees: { fontSize: 21, lineHeight: 27, fontWeight: "500", color: "#153c33" },
-  weekToggle: { minHeight: 48, paddingVertical: 12, borderTopWidth: 1, borderTopColor: "#d1d8cb", flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
-  weekTitle: { fontSize: 16, lineHeight: 23, color: "#21483e", flex: 1 },
+  hourTime: { fontSize: 12, lineHeight: 18, color: theme.muted },
+  hourDegrees: { fontSize: 21, lineHeight: 27, fontWeight: "500", color: theme.primary },
+  weekToggle: { minHeight: 48, paddingVertical: 12, borderTopWidth: 1, borderTopColor: theme.divider, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  weekTitle: { fontSize: 16, lineHeight: 23, color: theme.primary, flex: 1 },
   week: { paddingBottom: 16 },
-  day: { minHeight: 52, flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: "#e4e7dd" },
-  daySelected: { borderBottomColor: "#547667" },
-  dayName: { flex: 1, fontSize: 14, lineHeight: 21, color: "#627265" },
-  dayNameSelected: { fontWeight: "700", color: "#21483e" },
-  dayTemperature: { fontSize: 14, lineHeight: 21, color: "#42594a", minWidth: 78, textAlign: "right" },
+  day: { minHeight: 52, flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: theme.divider },
+  daySelected: { borderBottomColor: theme.accent },
+  dayName: { flex: 1, fontSize: 14, lineHeight: 21, color: theme.muted },
+  dayNameSelected: { fontWeight: "700", color: theme.primary },
+  dayTemperature: { fontSize: 14, lineHeight: 21, color: theme.text, minWidth: 78, textAlign: "right" },
   details: { paddingTop: 20, gap: 10 },
-  detailTitle: { fontSize: 17, lineHeight: 24, fontWeight: "600", color: "#21483e" },
-  detailText: { fontSize: 13, lineHeight: 20, color: "#516459" },
-  source: { fontSize: 11, lineHeight: 18, color: "#7c897c" },
+  detailTitle: { fontSize: 17, lineHeight: 24, fontWeight: "600", color: theme.primary },
+  detailText: { fontSize: 13, lineHeight: 20, color: theme.text },
+  source: { fontSize: 11, lineHeight: 18, color: theme.muted },
   share: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10 },
 });

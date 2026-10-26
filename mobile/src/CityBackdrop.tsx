@@ -34,13 +34,14 @@ export function localScene(forecast: Forecast, now = Date.now()): Exclude<SceneM
   const day = forecast.days.find((value) => value.date.slice(0, 10) === date);
   const sunrise = day?.sunrise.slice(11, 16);
   const sunset = day?.sunset.slice(11, 16);
-  if (sunrise && sunset ? time < sunrise || time >= sunset : !forecast.current.day) return "night";
+  // Без солнечных данных не используем признак дня из устаревшего прогноза.
+  if (time < (sunrise || "06:00") || time >= (sunset || "20:00")) return "night";
   const hour = Number(values.hour);
   return hour < 10 ? "morning" : hour >= 17 ? "evening" : "day";
 }
 
 /** @param {object} props - Прогноз и оформление. @returns {React.JSX.Element} Локальный фон с затемнением; незнакомые города получают нейтральное небо. */
-export function CityBackdrop({ forecast, mode, photo, seamless = false, photosEnabled = true }: { forecast: Forecast; mode: SceneMode; photo?: CityPhoto | null; seamless?: boolean; photosEnabled?: boolean }): React.JSX.Element {
+export function CityBackdrop({ forecast, mode, photo, seamless = false, photosEnabled = true, pageColor = "#f7f8f2" }: { forecast: Forecast; mode: SceneMode; photo?: CityPhoto | null; seamless?: boolean; photosEnabled?: boolean; pageColor?: string }): React.JSX.Element {
   const gradientId = useId().replace(/:/g, "");
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -58,8 +59,8 @@ export function CityBackdrop({ forecast, mode, photo, seamless = false, photosEn
       <View style={[StyleSheet.absoluteFill, { backgroundColor: seamless ? phase === "night" ? "rgba(8,20,38,.35)" : "rgba(14,35,42,.12)" : overlay }]} />
       {seamless && <>
         <SvgXml xml={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><defs><linearGradient id="${gradientId}scrim"><stop stop-color="#142d35" stop-opacity=".56"/><stop offset=".65" stop-color="#142d35" stop-opacity=".12"/><stop offset="1" stop-color="#142d35" stop-opacity="0"/></linearGradient></defs><path d="M0 0h100v100H0Z" fill="url(#${gradientId}scrim)"/></svg>`} width="100%" height="100%" style={StyleSheet.absoluteFill} />
-        <SvgXml xml={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><defs><linearGradient id="${gradientId}fade" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f7f8f2" stop-opacity="0"/><stop offset=".4" stop-color="#f7f8f2" stop-opacity=".12"/><stop offset="1" stop-color="#f7f8f2"/></linearGradient></defs><path d="M0 0h100v100H0Z" fill="url(#${gradientId}fade)"/></svg>`} width="100%" height={76} style={{ position: "absolute", bottom: 0 }} />
-        <SvgXml xml={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><defs><linearGradient id="${gradientId}top" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f7f8f2"/><stop offset="1" stop-color="#f7f8f2" stop-opacity="0"/></linearGradient></defs><path d="M0 0h100v100H0Z" fill="url(#${gradientId}top)"/></svg>`} width="100%" height={22} style={{ position: "absolute", top: 0 }} />
+        <SvgXml xml={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><defs><linearGradient id="${gradientId}fade" x1="0" y1="0" x2="0" y2="1"><stop stop-color="${pageColor}" stop-opacity="0"/><stop offset=".4" stop-color="${pageColor}" stop-opacity=".12"/><stop offset="1" stop-color="${pageColor}"/></linearGradient></defs><path d="M0 0h100v100H0Z" fill="url(#${gradientId}fade)"/></svg>`} width="100%" height={76} style={{ position: "absolute", bottom: 0 }} />
+        <SvgXml xml={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><defs><linearGradient id="${gradientId}top" x1="0" y1="0" x2="0" y2="1"><stop stop-color="${pageColor}"/><stop offset="1" stop-color="${pageColor}" stop-opacity="0"/></linearGradient></defs><path d="M0 0h100v100H0Z" fill="url(#${gradientId}top)"/></svg>`} width="100%" height={22} style={{ position: "absolute", top: 0 }} />
       </>}
     </View>
   );
