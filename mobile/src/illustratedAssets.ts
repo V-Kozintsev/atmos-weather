@@ -1,3 +1,4 @@
+import { illustratedMetrics } from "./illustratedMetrics";
 import type { ImageSourcePropType } from "react-native";
 import type { WardrobePhoto } from "./wardrobeAssets";
 
@@ -46,7 +47,16 @@ export const illustratedAssets = {
   "gloves-right": require("../assets/illustrated/gloves-right.webp") as ImageSourcePropType,
 } as const;
 
-export interface GarmentSprite { source: ImageSourcePropType; bounds: [number, number, number, number] }
+export interface GarmentSprite { source: ImageSourcePropType; bounds: [number, number, number, number]; feet?: [number, number] }
+
+/** @param {keyof typeof illustratedAssets} key - Растровый слой. @param {number} top - Высота верхнего края на фигуре. @param {number} height - Нужная высота без изменения пропорций. @returns {GarmentSprite} Посадка по исходному размеру и координаты манжет брюк. */
+function spriteAtHeight(key: keyof typeof illustratedAssets, top: number, height: number): GarmentSprite {
+  const metrics = illustratedMetrics[key];
+  const width = height * metrics.width / metrics.height;
+  const bounds: GarmentSprite["bounds"] = [120 - width / 2, top, width, height];
+  const feet: [number, number] | undefined = "cuffs" in metrics ? [bounds[0] + metrics.cuffs[0] * width, bounds[0] + metrics.cuffs[1] * width] : undefined;
+  return { source: illustratedAssets[key], bounds, feet };
+}
 
 /** @param {WardrobePhoto} item - Вещь из рекомендаций. @returns {GarmentSprite | undefined} Общая иллюстрация и посадка слоя на фигуре для всех мест использования. */
 export function garmentSprite(item: WardrobePhoto): GarmentSprite | undefined {
@@ -55,11 +65,14 @@ export function garmentSprite(item: WardrobePhoto): GarmentSprite | undefined {
   let bounds: GarmentSprite["bounds"];
   if (/trousers|chinos|joggers|shorts|skirt/.test(item)) {
     key = /skirt/.test(item) ? "women-skirt" : /shorts/.test(item) ? woman ? "women-shorts" : "men-shorts" : /joggers/.test(item) ? woman ? "women-joggers" : "men-joggers" : woman ? "women-trousers" : "men-chinos";
-    bounds = /skirt/.test(item) ? [48, 258, 145, 216] : /shorts/.test(item) ? [60, 258, 120, 95] : woman ? [67, 258, 106, 300] : [63, 258, 114, 302];
-  } else if (/boots|loafers|sandals|sneakers|running/.test(item)) {
+    return spriteAtHeight(key, 248, /skirt/.test(item) ? 258 : /shorts/.test(item) ? 110 : 302);
+  }
+  if (/boots|loafers|sandals|sneakers|running/.test(item)) {
     key = /boots/.test(item) ? /winter|warm|rain/.test(item) ? "men-winter-boots" : "women-boots" : /loafers/.test(item) ? "women-loafers" : /sandals/.test(item) ? "women-sandals" : "men-sneakers";
-    bounds = /boots/.test(item) ? [67, 550, 106, 70] : /loafers|sandals/.test(item) ? [67, 566, 106, 54] : [67, 557, 106, 63];
-  } else if (item === "hat-cream" || item === "hat-navy" || item === "sun-hat" || item === "cap") {
+    const height = /boots/.test(item) ? 70 : /loafers|sandals/.test(item) ? 48 : 56;
+    return spriteAtHeight(key, 620 - height, height);
+  }
+  if (item === "hat-cream" || item === "hat-navy" || item === "sun-hat" || item === "cap") {
     key = item === "cap" ? "sun-hat" : item;
     bounds = item === "sun-hat" || item === "cap" ? [65, 4, 110, 47] : [80, 3, 80, 44];
   } else if (item === "scarf" || item === "snood") {
@@ -68,16 +81,13 @@ export function garmentSprite(item: WardrobePhoto): GarmentSprite | undefined {
     key = item; bounds = [89, 45, 62, 24];
   } else if (item === "gloves" || item === "mittens") {
     key = "gloves"; bounds = [42, 310, 157, 35];
-  } else if (/umbrella/.test(item)) {
-    return undefined;
-  } else if (/socks|leggings|backpack/.test(item)) {
+  } else if (/umbrella|socks|leggings|backpack/.test(item)) {
     return undefined;
   } else {
     key = /puffer/.test(item) ? "women-puffer" : /parka/.test(item) ? "men-parka" : /coat/.test(item) ? /rain/.test(item) ? "men-raincoat" : woman ? "women-coat" : "men-coat" : /rain|poncho/.test(item) ? "men-raincoat" : /blazer/.test(item) ? woman ? "women-blazer" : "men-blazer" : /cardigan/.test(item) ? "women-cardigan" : /windbreaker|jacket/.test(item) ? woman ? "women-windbreaker" : "men-jacket" : /blouse|shirt/.test(item) ? woman ? "women-blouse" : "men-shirt" : /knit|fleece/.test(item) ? woman ? "women-knit" : "men-knit" : /longsleeve|thermal|hoodie/.test(item) ? woman ? "women-longsleeve" : "men-longsleeve" : /sport-tee/.test(item) ? woman ? "women-sport-tee" : "men-sport-tee" : woman ? "women-tee" : "men-tee";
     const long = /coat|parka|puffer|poncho/.test(item);
-    const tee = /tee/.test(item);
-    bounds = long ? [29, 100, 182, /puffer/.test(item) ? 329 : 313] : /blazer|cardigan|jacket|windbreaker/.test(item) ? [30, 100, 180, 201] : [38, 100, 164, 194];
-    if (tee) bounds = [38, 100, 164, 182];
+    const height = long ? /puffer/.test(item) ? 329 : 313 : /blazer|cardigan|jacket|windbreaker/.test(item) ? 210 : /longsleeve|thermal|hoodie/.test(item) ? 175 : /tee/.test(item) ? 170 : 200;
+    return spriteAtHeight(key, 100, height);
   }
   return { source: illustratedAssets[key], bounds };
 }
