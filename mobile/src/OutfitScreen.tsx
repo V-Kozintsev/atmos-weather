@@ -41,7 +41,7 @@ export function OutfitScreen({ forecast, advice, source, period, gender, occasio
     </View>
     <OutfitPhoto source={source} editorial height={heroHeight} description={`${title}. ${condition(forecast.current.code)}, ${temperature(forecast.current.temperature, fahrenheit)}°, ощущается как ${temperature(forecast.current.feels, fahrenheit)}°. ${advice.note}`}>
       <View pointerEvents="none" style={styles.weather}>
-        <WeatherIcon code={forecast.current.code} night={!forecast.current.day} size={48} />
+        <WeatherIcon code={forecast.current.code} night={!forecast.current.day} surface="light" size={48} />
         <Text style={styles.temperature}>{temperature(forecast.current.temperature, fahrenheit)}°</Text>
         <Text style={styles.weatherText}>Ощущается как {temperature(forecast.current.feels, fahrenheit)}°</Text>
         <Text numberOfLines={2} style={styles.condition}>{condition(forecast.current.code)}</Text>

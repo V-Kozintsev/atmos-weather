@@ -63,7 +63,7 @@ export function WeatherHome({ forecast, advice, gender, occasion, period, evenin
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hours}>
             {hours.map((hour, index) => <View key={hour.time} style={[styles.hour, { minWidth: hourWidth }, index % 4 === 3 && styles.hourLast]}>
               <Text style={styles.hourTime}>{clock(hour.time)}</Text>
-              <WeatherIcon code={hour.code} night={!hour.day} size={dense ? 36 : 42} />
+              <WeatherIcon code={hour.code} night={!hour.day} surface="light" size={dense ? 36 : 42} />
               <Text style={styles.hourDegrees}>{degrees(hour.temperature)}</Text>
             </View>)}
           </ScrollView>
@@ -74,7 +74,7 @@ export function WeatherHome({ forecast, advice, gender, occasion, period, evenin
         {weekOpen && <View style={styles.week}>
           {forecast.days.map((value, index) => <Pressable accessibilityRole="button" accessibilityState={{ selected: selectedIndex === index }} accessibilityLabel={`${index === 0 ? "Сегодня" : weekday(value.date)}: ${degrees(value.min)} — ${degrees(value.max)}. Показать прогноз по часам`} key={value.date} onPress={() => onDay(index)} style={[styles.day, selectedIndex === index && styles.daySelected]}>
             <Text style={[styles.dayName, selectedIndex === index && styles.dayNameSelected]}>{index === 0 ? "Сегодня" : weekday(value.date)}</Text>
-            <WeatherIcon code={index === 0 ? forecast.current.code : value.code} night={index === 0 && !forecast.current.day} size={34} />
+            <WeatherIcon code={index === 0 ? forecast.current.code : value.code} night={index === 0 && !forecast.current.day} surface="light" size={34} />
             <Text style={styles.dayTemperature}>{degrees(value.min)} / {degrees(value.max)}</Text>
           </Pressable>)}
           <View style={styles.details}>
