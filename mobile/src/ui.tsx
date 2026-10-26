@@ -38,6 +38,7 @@ export const s = StyleSheet.create({
   bodyWide: { maxWidth: 1080 },
   weatherBody: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0, gap: 12 },
   outfitBody: { paddingHorizontal: 12, paddingTop: 4, paddingBottom: 16 },
+  outfitEditorialBody: { paddingHorizontal: 18, paddingTop: 2 },
   outfitPageTitle: { fontFamily: fontNames.heading, fontSize: 29, lineHeight: 36, fontWeight: "600", color: "#21483e" },
   header: {
     width: "100%", maxWidth: 680, alignSelf: "center",

@@ -1,4 +1,4 @@
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, useWindowDimensions } from "react-native";
 import { Text, fontNames } from "./typography";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import type { OutfitAdvice, OutfitOccasion } from "../../src/lib/outfit";
@@ -9,6 +9,7 @@ import { s } from "./ui";
 /** @param {object} props - Рекомендация по одежде. @returns {React.JSX.Element} Компактный комплект по категориям с пояснением прогноза. */
 export function OutfitDetails({ advice, gender, occasion }: { advice: OutfitAdvice; gender: "woman" | "man"; occasion: OutfitOccasion }): React.JSX.Element {
   const pieces = outfitItems(advice, gender, occasion);
+  const { fontScale } = useWindowDimensions();
   return (
     <View style={styles.section}>
       <View style={styles.heading}>
@@ -17,8 +18,8 @@ export function OutfitDetails({ advice, gender, occasion }: { advice: OutfitAdvi
       </View>
       <View style={styles.grid}>
         {pieces.map((piece) => (
-          <View key={`${piece.label}:${piece.text}`} style={styles.piece}>
-            <View style={styles.icon}>{piece.photo ? <ClothingItem item={piece.photo} size={44} /> : <Ionicons name="bag-handle-outline" size={22} color="#345b4c" />}</View>
+          <View key={`${piece.label}:${piece.text}`} style={[styles.piece, fontScale > 1.25 && styles.pieceWide]}>
+            <View style={styles.icon}>{piece.photo ? <ClothingItem item={piece.photo} size={54} /> : <Ionicons name="bag-handle-outline" size={22} color="#345b4c" />}</View>
             <View style={s.flex}>
               <Text style={[s.caption, styles.label]}>{piece.label}</Text>
               <Text style={[s.text, styles.name]}>{piece.text}</Text>
@@ -31,12 +32,13 @@ export function OutfitDetails({ advice, gender, occasion }: { advice: OutfitAdvi
 }
 
 const styles = StyleSheet.create({
-  section: { gap: 10 },
+  section: { gap: 10, borderTopWidth: 1, borderTopColor: "#d5dccf", paddingTop: 12 },
   heading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   title: { fontFamily: fontNames.heading, fontSize: 25, lineHeight: 30, fontWeight: "600", color: "#21483e" },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  piece: { width: "48%", flexGrow: 1, flexDirection: "row", alignItems: "center", gap: 6, minHeight: 60, paddingVertical: 6, paddingHorizontal: 6, borderRadius: 12, borderWidth: 1, borderColor: "#dde0d8", backgroundColor: "#fafbf6" },
-  icon: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  grid: { flexDirection: "row", flexWrap: "wrap", columnGap: 12, rowGap: 8 },
+  piece: { width: "47%", flexGrow: 1, flexDirection: "row", alignItems: "center", gap: 8, minHeight: 68, paddingVertical: 4 },
+  pieceWide: { width: "100%" },
+  icon: { width: 54, height: 60, alignItems: "center", justifyContent: "center" },
   label: { fontSize: 10, lineHeight: 14, color: "#6c806e" },
   name: { fontSize: 13, lineHeight: 17, fontWeight: "600", color: "#294a3d" },
 });

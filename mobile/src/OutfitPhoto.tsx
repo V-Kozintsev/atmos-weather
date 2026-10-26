@@ -115,9 +115,9 @@ export function OutfitPhoto({ source, editorial = false, height, description, ch
 }
 
 const styles = StyleSheet.create({
-  editorial: { backgroundColor: "#e8e9dc", borderRadius: 18 },
-  editorialModel: { position: "absolute", right: -2, top: 16, width: "64%", height: "94%" },
-  editorialBadge: { top: 8, bottom: undefined, right: 8, backgroundColor: "#f7f8f2d9", paddingVertical: 5, paddingHorizontal: 7 },
+  editorial: { backgroundColor: "transparent", borderRadius: 0 },
+  editorialModel: { position: "absolute", right: 0, top: 6, width: "62%", height: "98%" },
+  editorialBadge: { top: 3, bottom: undefined, right: 0, backgroundColor: "transparent", borderRadius: 0, paddingVertical: 7, paddingHorizontal: 2 },
   badgeText: { fontSize: 11, lineHeight: 16, color: "#21483e" },
   screen: { flex: 1, backgroundColor: "#142d31" },
   header: { paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
