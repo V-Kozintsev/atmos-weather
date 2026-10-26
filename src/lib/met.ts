@@ -1,6 +1,6 @@
 import * as SunCalc from "suncalc";
 import tzlookup from "tz-lookup";
-import type { City, Forecast } from "./weather";
+import { apparentTemperature, type City, type Forecast } from "./weather";
 
 interface MetPoint {
   time: string;
@@ -121,7 +121,7 @@ export function parseMetForecast(city: City, data: MetResponse): Forecast {
     return {
       time: localTime(new Date(point.time), timezone),
       temperature: details.air_temperature,
-      feels: details.apparent_air_temperature ?? details.air_temperature,
+      feels: Number.isFinite(details.apparent_air_temperature) ? details.apparent_air_temperature! : apparentTemperature(details.air_temperature, details.relative_humidity, details.wind_speed),
       rain: precipitation(point),
       wind: (details.wind_speed ?? 0) * 3.6,
       code: weatherCode(symbol),
@@ -163,7 +163,7 @@ export function parseMetForecast(city: City, data: MetResponse): Forecast {
     current: {
       time: hours[0].time,
       temperature: details.air_temperature,
-      feels: details.apparent_air_temperature ?? details.air_temperature,
+      feels: hours[0].feels,
       humidity: Math.round(details.relative_humidity ?? 0),
       wind: (details.wind_speed ?? 0) * 3.6,
       direction: details.wind_from_direction ?? 0,

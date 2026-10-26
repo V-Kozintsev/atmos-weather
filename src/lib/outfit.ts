@@ -127,13 +127,23 @@ function buildOutfit(feels: number, wind: number, rain: boolean, note: string, p
   return { style, title, pieces, items: flattenPieces(pieces), note, rain, feels, wind };
 }
 
-/** @param {Hour} hour - Ближайший час. @param {OutfitPreferences} preferences - Стиль и комфорт. @returns {OutfitAdvice} Образ для выхода сейчас. */
-export function outfitForHour(hour: Hour, preferences: OutfitPreferences = defaultOutfitPreferences): OutfitAdvice {
-  const rain = hour.rain >= 0.3 || hasPrecipitation(hour.code);
+/** @param {Hour} hour - Погода в начале выхода. @param {OutfitPreferences} preferences - Стиль и комфорт. @param {Hour | undefined} nextHour - Погода к концу ближайшего часа. @returns {OutfitAdvice} Комплект с учётом похолодания и осадков за прогулку. */
+export function outfitForHour(hour: Hour, preferences: OutfitPreferences = defaultOutfitPreferences, nextHour?: Hour): OutfitAdvice {
+  const gap = nextHour ? Date.parse(nextHour.time) - Date.parse(hour.time) : NaN;
+  const next = nextHour && gap > 0 && gap <= 90 * 60_000 && Number.isFinite(nextHour.feels) ? nextHour : undefined;
+  const rain = hour.rain >= 0.3 || hasPrecipitation(hour.code) || !!next && (next.rain >= .3 || hasPrecipitation(next.code));
+  const feels = next ? Math.min(hour.feels, next.feels) : hour.feels;
+  const wind = next ? Math.max(hour.wind, next.wind) : hour.wind;
   const reasons = [`${Math.round(hour.feels)}° по ощущениям`];
+  if (next && next.feels < hour.feels - 1) reasons.push(`к концу часа ${Math.round(next.feels)}°`);
   if (rain) reasons.push("возможны осадки");
-  if (hour.wind >= 25) reasons.push(`ветер ${windSpeed(hour.wind)} м/с`);
-  return buildOutfit(hour.feels, hour.wind, rain, `${reasons.join(", ")}.`, preferences);
+  if (wind >= 18) reasons.push(`ветер ${windSpeed(wind)} м/с`);
+  const advice = buildOutfit(feels, wind, rain, `${reasons.join(", ")}.`, preferences);
+  if (!rain && wind >= 18 && advice.style === "mild" && preferences.occasion !== "office") {
+    advice.pieces.outer = preferences.gender === "woman" ? "Ветрозащитная куртка женского кроя" : "Куртка от ветра";
+    advice.items = flattenPieces(advice.pieces);
+  }
+  return advice;
 }
 
 /** @param {Day} day - Сегодня. @param {Hour[]} hours - Оставшиеся часы. @param {Hour} fallback - Текущая погода при отсутствии часов. @param {OutfitPreferences} preferences - Стиль и комфорт. @returns {OutfitAdvice} Комплект до конца дня. */

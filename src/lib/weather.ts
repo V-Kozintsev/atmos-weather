@@ -43,6 +43,14 @@ export interface Forecast {
   days: Day[];
 }
 export type Activity = "walk" | "run" | "cycle";
+
+/** @param {number} temperature - Температура воздуха, °C. @param {number | undefined} humidity - Относительная влажность, %. @param {number | undefined} wind - Ветер на высоте 10 м, м/с. @returns {number} Оценка ощущений в тени по Steadman/BOM либо температура воздуха при неполных данных. */
+export function apparentTemperature(temperature: number, humidity?: number, wind?: number): number {
+  if (!Number.isFinite(temperature) || !Number.isFinite(humidity) || !Number.isFinite(wind)) return temperature;
+  const vapour = Math.max(0, Math.min(100, humidity!)) / 100 * 6.105 * Math.exp(17.27 * temperature / (237.7 + temperature));
+  // Без измерения солнечной радиации используем формулу для тени, а не выдуманную поправку на сезон.
+  return temperature + .33 * vapour - .7 * Math.max(0, wind!) - 4;
+}
 export const CITIES: City[] = [
   {
     id: "moscow",

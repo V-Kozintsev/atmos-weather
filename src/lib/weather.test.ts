@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  apparentTemperature,
   bestHour,
   CITIES,
   clock,
@@ -9,6 +10,19 @@ import {
   weekday,
   type Hour,
 } from "./weather";
+
+describe("apparent temperature", () => {
+  it("includes wind cooling at mild temperatures instead of echoing the thermometer", () => {
+    expect(apparentTemperature(19, 60, 5)).toBeCloseTo(15.83, 1);
+    expect(apparentTemperature(19, 60, 5)).toBeLessThan(apparentTemperature(19, 60, 1));
+  });
+  it("includes humid heat and retains air temperature when data are missing", () => {
+    expect(apparentTemperature(32, 80, 1)).toBeGreaterThan(32);
+    expect(apparentTemperature(19, undefined, 3)).toBe(19);
+    expect(apparentTemperature(19, 60, undefined)).toBe(19);
+    expect(Number.isFinite(apparentTemperature(-30, 80, 5))).toBe(true);
+  });
+});
 import {
   cachedForecast,
   fetchForecast,

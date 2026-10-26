@@ -12,6 +12,24 @@ const hour: Hour = {
 };
 
 describe("outfit advice", () => {
+  it("keeps a warmer layer for cooling during the next hour", () => {
+    const advice = outfitForHour({ ...hour, feels: 23 }, undefined, { ...hour, time: "2026-09-30T14:00", feels: 18 });
+    expect(advice.style).toBe("mild");
+    expect(advice.pieces.outer).toBeDefined();
+    expect(advice.note).toContain("к концу часа 18°");
+  });
+  it("does not dress a short outing for an unrelated distant or past hour", () => {
+    for (const time of ["2026-09-30T23:00", "2026-09-30T12:00"]) {
+      expect(outfitForHour({ ...hour, feels: 23 }, undefined, { ...hour, time, feels: 0 }).style).toBe("warm");
+    }
+  });
+  it("adds wind protection without subtracting wind from apparent temperature twice", () => {
+    const advice = outfitForHour({ ...hour, feels: 17, wind: 20 });
+    expect(advice.feels).toBe(17);
+    expect(advice.style).toBe("mild");
+    expect(advice.pieces.outer).toBe("Куртка от ветра");
+    expect(advice.note).toContain("ветер");
+  });
   it("uses the nearest hour's apparent temperature", () => {
     const advice = outfitForHour({ ...hour, feels: 6 });
     expect(advice.style).toBe("cold");

@@ -275,7 +275,7 @@ function Atmos(): React.JSX.Element {
             firstHour,
             preferences,
           )
-        : outfitForHour(firstHour, preferences)
+        : outfitForHour(firstHour, preferences, forecast.hours[1])
       : undefined;
   const photoStyle = advice
     ? advice.rain && ["mild", "cool"].includes(advice.style)
