@@ -7,6 +7,7 @@ import { condition, temperature, type Forecast } from "../../src/lib/weather";
 import { OutfitPhoto } from "./OutfitPhoto";
 import { OutfitDetails } from "./OutfitDetails";
 import { ClothingItem, type ClothingPhoto } from "./OutfitPreview";
+import { accessoryPhoto, upperPhoto } from "./wardrobeSelection";
 import { WeatherIcon } from "./WeatherIcon";
 import { s } from "./ui";
 
@@ -31,7 +32,7 @@ export function OutfitScreen({ forecast, advice, source, period, gender, occasio
   const heroHeight = Math.max(300, Math.min(320, height * .34)) * Math.max(1, fontScale);
   const title = advice.rain ? "На случай дождя" : ["heat", "warm"].includes(advice.style) ? "Сегодня налегке" : advice.style === "mild" ? "Лёгкий слой" : advice.style === "cool" ? "Утепляемся" : "Тёплые слои";
   const evening = eveningHour ? `${eveningHour.feels < forecast.current.feels ? "К вечеру похолодает до" : "Вечером по ощущениям"} ${temperature(eveningHour.feels, fahrenheit)}°` : "Планы на вечер";
-  const eveningPhoto: ClothingPhoto = /осадк|дожд|зонт/i.test(eveningHint) ? "umbrella" : /пальто/i.test(eveningHint) ? gender === "woman" ? "coat" : "parka" : /куртк/i.test(eveningHint) ? "jacket" : /футбол/i.test(eveningHint) ? "tee" : "knit";
+  const eveningPhoto: ClothingPhoto = /осадк/i.test(eveningHint) ? "umbrella-folded" : accessoryPhoto(eveningHint, gender) || upperPhoto(eveningHint, gender, advice);
   return <View style={styles.screen}>
     <View style={styles.toolbar}>
       <Segment label="Период рекомендации" options={[["hour", "На час"], ["day", "Весь день"]]} value={period} onChange={onPeriodChange} />

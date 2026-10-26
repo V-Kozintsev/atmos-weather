@@ -18,8 +18,11 @@ describe("outfit advice", () => {
     expect(advice.items).toContain("Тёплая куртка");
   });
   it("protects against rain in the nearest hour", () => {
-    expect(outfitForHour({ ...hour, rain: 0.5 }).items).toContain("Зонт или дождевик");
-    expect(outfitForHour({ ...hour, code: 95, rain: 0 }).items).toContain("Зонт или дождевик");
+    const advice = outfitForHour({ ...hour, rain: 0.5 });
+    expect(advice.pieces.outer).toContain("Непромокаемый");
+    expect(advice.pieces.shoes).toContain("Непромокаемые");
+    expect(advice.pieces.accessories).toContain("Зонт");
+    expect(outfitForHour({ ...hour, code: 95, rain: 0 }).pieces.accessories).toContain("Зонт");
   });
   it("uses the coldest remaining hour and includes the whole-day temperature range", () => {
     const advice = outfitForDay(day, [
@@ -31,16 +34,18 @@ describe("outfit advice", () => {
   });
   it("adds protection for later precipitation", () => {
     const advice = outfitForDay(day, [hour, { ...hour, time: "2026-09-30T18:00", rain: 0.7 }], hour);
-    expect(advice.items).toContain("Зонт или дождевик");
+    expect(advice.pieces.accessories).toContain("Зонт");
   });
   it("suggests winter shoes for freezing precipitation", () => {
     const advice = outfitForDay({ ...day, rain: 0.6 }, [{ ...hour, feels: -8, code: 71 }], hour);
     expect(advice.style).toBe("frost");
-    expect(advice.items).toContain("Непромокаемая обувь");
+    expect(advice.pieces.shoes).toBe("Непромокаемые зимние ботинки");
+    expect(advice.pieces.accessories).not.toContain("Зонт");
   });
-  it("includes wind protection when it strengthens later", () => {
-    expect(outfitForDay(day, [hour, { ...hour, wind: 30 }], hour).items).toContain("Защита от ветра");
-    expect(outfitForDay(day, [hour], hour).items).not.toContain("Защита от ветра");
+  it("explains strengthening wind and adds a neck layer in chilly weather", () => {
+    expect(outfitForDay(day, [hour, { ...hour, wind: 30 }], hour).note).toContain("ветер до");
+    expect(outfitForDay(day, [hour], hour).note).not.toContain("ветер до");
+    expect(outfitForHour({ ...hour, feels: 10, wind: 30 }).pieces.accessories).toContain("Снуд");
   });
   it("changes the full outfit for office and active styles", () => {
     const office = outfitForHour(hour, { occasion: "office", warmth: "balanced" });

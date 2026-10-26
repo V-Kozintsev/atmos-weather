@@ -1,17 +1,19 @@
 import type { OutfitAdvice, OutfitOccasion } from "../../src/lib/outfit";
 import { outfitPhotoItems, type ClothingPhoto } from "./OutfitPreview";
+import { accessoryPhoto, upperPhoto } from "./wardrobeSelection";
 
 export interface OutfitItem { label: string; text: string; photo?: ClothingPhoto }
 
 /** @param {OutfitAdvice} advice - Комплект по погоде. @param {string} gender - Вариант одежды. @param {OutfitOccasion} occasion - Выбранный стиль. @returns {OutfitItem[]} Единый список категорий и фотографий для комплекта и поиска. */
 export function outfitItems(advice: OutfitAdvice, gender: "woman" | "man", occasion: OutfitOccasion): OutfitItem[] {
   const photos = outfitPhotoItems(advice, gender, occasion);
+  const upperLayers = advice.pieces.upper.split(/ и /);
   return [
-    { label: "Верх", text: advice.pieces.upper, photo: photos.top },
+    ...upperLayers.map((text, index) => ({ label: upperLayers.length > 1 ? index === 0 ? "Первый слой" : "Тёплый слой" : "Верх", text, photo: upperPhoto(text, gender, advice) })),
     ...(advice.pieces.outer ? [{ label: "Верхний слой", text: advice.pieces.outer, photo: photos.outer }] : []),
     { label: "Низ", text: advice.pieces.lower, photo: photos.lower },
     { label: "Обувь", text: advice.pieces.shoes, photo: photos.shoes },
-    ...advice.pieces.accessories.map((text) => ({ label: "С собой", text, photo: /шапк|головн/i.test(text) ? "hat" as const : /зонт|дожд/i.test(text) ? "umbrella" as const : undefined })),
+    ...advice.pieces.accessories.map((text) => ({ label: "С собой", text, photo: accessoryPhoto(text, gender) })),
   ];
 }
 

@@ -1,60 +1,37 @@
-import { useState } from "react";
-import { Image, StyleSheet, View, type LayoutChangeEvent } from "react-native";
+import { Image, StyleSheet, View, useWindowDimensions } from "react-native";
 import type { OutfitAdvice, OutfitOccasion } from "../../src/lib/outfit";
+import { wardrobeAssets, type WardrobePhoto } from "./wardrobeAssets";
+import { selectWardrobe } from "./wardrobeSelection";
 
-const atlas = require("../assets/outfit-items.webp");
-const hat = require("../assets/outfit-hat.webp");
-export type ClothingPhoto = "tee" | "knit" | "blazer" | "jacket" | "trousers" | "skirt" | "loafers" | "sneakers" | "coat" | "parka" | "boots" | "umbrella" | "hat";
-type Item = ClothingPhoto;
-const cells: Record<Exclude<Item, "hat">, [number, number]> = {
-  tee: [0, 0], knit: [1, 0], blazer: [2, 0], jacket: [3, 0],
-  trousers: [0, 1], skirt: [1, 1], loafers: [2, 1], sneakers: [3, 1],
-  coat: [0, 2], parka: [1, 2], boots: [2, 2], umbrella: [3, 2],
-};
+type LegacyPhoto = "tee" | "knit" | "blazer" | "jacket" | "trousers" | "skirt" | "loafers" | "sneakers" | "coat" | "parka" | "boots" | "umbrella" | "hat";
+export type ClothingPhoto = WardrobePhoto | LegacyPhoto;
+const legacy: Record<LegacyPhoto, WardrobePhoto> = { tee: "men-tee", knit: "men-knit", blazer: "women-blazer", jacket: "men-jacket", trousers: "men-chinos", skirt: "women-skirt", loafers: "women-loafers", sneakers: "men-sneakers", coat: "women-coat", parka: "men-parka", boots: "men-boots", umbrella: "umbrella-folded", hat: "hat-cream" };
 
-/** @param {object} props - Вещь и размер изображения. @returns {React.JSX.Element} Локальная фотография предмета без дополнительных запросов. */
-export function ClothingItem({ item, size }: { item: Item; size: number }): React.JSX.Element {
-  if (item === "hat") return <Image source={hat} resizeMode="contain" fadeDuration={0} style={{ width: size, height: size }} />;
-  const [column, row] = cells[item];
-  return <View style={{ width: size, height: size, overflow: "hidden" }}>
-    <Image source={atlas} resizeMode="stretch" fadeDuration={0} style={{ position: "absolute", width: size * 4, height: size * 3, left: -column * size, top: -row * size }} />
-  </View>;
+/** @param {object} props - Идентификатор вещи и размер квадратного контейнера. @returns {React.JSX.Element} Локальный прозрачный вырез с сохранёнными исходными пропорциями. */
+export function ClothingItem({ item, size }: { item: ClothingPhoto; size: number }): React.JSX.Element {
+  const photo = item in wardrobeAssets ? item as WardrobePhoto : legacy[item as LegacyPhoto];
+  return <Image source={wardrobeAssets[photo]} resizeMode="contain" fadeDuration={0} accessible={false} style={{ width: size, height: size }} />;
 }
 
-/** @param {OutfitAdvice} advice - Рекомендованный комплект. @param {string} gender - Вариант одежды. @param {OutfitOccasion} occasion - Стиль. @returns {object} Общие фотографии категорий для карточки и списка вещей. */
-export function outfitPhotoItems(advice: OutfitAdvice, gender: "woman" | "man", occasion: OutfitOccasion): { top: Item; outer: Item; lower: Item; shoes: Item } {
-  const winter = advice.style === "cold" || advice.style === "frost";
-  const outerName = advice.pieces.outer?.toLocaleLowerCase("ru") || "";
-  const shoeName = advice.pieces.shoes.toLocaleLowerCase("ru");
-  return {
-    top: advice.pieces.upper.toLocaleLowerCase("ru").includes("футболка") ? "tee" : "knit",
-    outer: winter || outerName.includes("пальто") ? gender === "woman" ? "coat" : "parka" : gender === "woman" ? "blazer" : "jacket",
-    lower: advice.pieces.lower.toLocaleLowerCase("ru").includes("юбка") ? "skirt" : "trousers",
-    shoes: winter || /ботин|ботильон|сапог/.test(shoeName) ? "boots" : /кед|кроссов/.test(shoeName) ? "sneakers" : gender === "woman" && occasion !== "sport" && !advice.rain ? "loafers" : "sneakers",
-  };
+/** @param {OutfitAdvice} advice - Комплект из прогноза. @param {string} gender - Крой вещей. @param {OutfitOccasion} occasion - Стиль комплекта. @returns {object} Единый выбор реальных фотографий для карточки и полного списка. */
+export function outfitPhotoItems(advice: OutfitAdvice, gender: "woman" | "man", occasion: OutfitOccasion) {
+  return selectWardrobe(advice, gender, occasion);
 }
 
-/** @param {object} props - Погода, вариант одежды и стиль. @returns {React.JSX.Element} Композиция фотографий вещей, меняющаяся по погоде и предпочтениям. */
+/** @param {object} props - Реальный комплект и его предпочтения. @returns {React.JSX.Element} Статичная композиция основных вещей без растяжения, обрезки и сетевых запросов. */
 export function OutfitPreview({ advice, gender, occasion }: { advice: OutfitAdvice; gender: "woman" | "man"; occasion: OutfitOccasion }): React.JSX.Element {
-  const [width, setWidth] = useState(120);
-  const layered = Boolean(advice.pieces.outer);
-  const photos = outfitPhotoItems(advice, gender, occasion);
-  const upper = layered ? photos.outer : photos.top;
-  const { lower, shoes } = photos;
-  /** @param {LayoutChangeEvent} event - Реальная ширина иллюстрации. @returns {void} Масштабирует композицию без обрезки вещей. */
-  function measure(event: LayoutChangeEvent): void {
-    const layout = event.nativeEvent.layout;
-    setWidth(Math.max(1, Math.min(layout.width, layout.height / 1.3)));
-  }
-  return <View onLayout={measure} style={styles.scene} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-    <View style={{ width, height: width * 1.3 }}>
-    <View style={{ position: "absolute", right: width * .22, top: width * .4, transform: [{ rotate: "12deg" }] }}><ClothingItem item={lower} size={width * .68} /></View>
-    <View style={{ position: "absolute", left: layered ? width * .24 : -width * .04, top: -width * .02, transform: [{ rotate: layered ? "9deg" : "-11deg" }] }}><ClothingItem item={upper} size={width * (layered ? .76 : .82)} /></View>
-    {layered && <View style={{ position: "absolute", left: -width * .06, top: width * .05, transform: [{ rotate: "-12deg" }] }}><ClothingItem item={photos.top} size={width * .62} /></View>}
-    <View style={{ position: "absolute", right: -width * .02, top: width * .54, transform: [{ rotate: "-18deg" }] }}><ClothingItem item={shoes} size={width * .66} /></View>
-    {advice.rain && <View style={{ position: "absolute", right: -width * .02, top: 0, transform: [{ rotate: "14deg" }] }}><ClothingItem item="umbrella" size={width * .42} /></View>}
+  const { width: screenWidth } = useWindowDimensions();
+  const size = screenWidth >= 768 ? 148 : 126;
+  const photos = selectWardrobe(advice, gender, occasion);
+  const upper = advice.pieces.outer ? photos.outer : photos.top;
+  const accessories = photos.accessories.slice(0, 2);
+  return <View style={styles.scene} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+    <View style={{ width: size, height: size * 1.16 }}>
+      <View style={{ position: "absolute", right: -size * .01, top: size * .18, transform: [{ rotate: "10deg" }] }}><ClothingItem item={photos.lower} size={size * .9} /></View>
+      <View style={{ position: "absolute", left: -size * .03, top: 0, transform: [{ rotate: "-9deg" }] }}><ClothingItem item={upper} size={size * .9} /></View>
+      <View style={{ position: "absolute", right: size * .04, bottom: 0, transform: [{ rotate: "-12deg" }] }}><ClothingItem item={photos.shoes} size={size * .72} /></View>
+      {accessories.map((photo, index) => <View key={`${photo}:${index}`} style={{ position: "absolute", right: index ? -size * .02 : size * .03, top: index ? size * .36 : -size * .02, transform: [{ rotate: index ? "12deg" : "-8deg" }] }}><ClothingItem item={photo} size={size * .3} /></View>)}
     </View>
   </View>;
 }
-
 const styles = StyleSheet.create({ scene: { width: "100%", height: "100%", alignItems: "center", justifyContent: "center" } });

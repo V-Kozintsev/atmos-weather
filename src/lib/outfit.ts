@@ -38,7 +38,7 @@ const wardrobes: Record<OutfitOccasion, Record<OutfitStyle, Omit<OutfitPieces, "
     mild: { upper: "Футболка", outer: "Лёгкая куртка", lower: "Брюки", shoes: "Кроссовки" },
     cool: { upper: "Свитер", outer: "Куртка", lower: "Брюки", shoes: "Закрытая обувь" },
     cold: { upper: "Свитер", outer: "Тёплая куртка", lower: "Брюки", shoes: "Тёплая закрытая обувь" },
-    frost: { upper: "Тёплый слой", outer: "Зимняя куртка", lower: "Утеплённые брюки", shoes: "Зимняя обувь" },
+    frost: { upper: "Термослой и джемпер", outer: "Зимняя куртка", lower: "Утеплённые брюки", shoes: "Зимняя обувь" },
   },
   office: {
     heat: { upper: "Льняная рубашка", lower: "Лёгкие брюки", shoes: "Лоферы" },
@@ -54,7 +54,7 @@ const wardrobes: Record<OutfitOccasion, Record<OutfitStyle, Omit<OutfitPieces, "
     mild: { upper: "Лонгслив", outer: "Лёгкая ветровка", lower: "Спортивные брюки", shoes: "Кроссовки" },
     cool: { upper: "Термолонгслив", outer: "Куртка от ветра", lower: "Спортивные брюки", shoes: "Закрытые кроссовки" },
     cold: { upper: "Термослой", outer: "Утеплённая куртка", lower: "Тёплые спортивные брюки", shoes: "Утеплённые кроссовки" },
-    frost: { upper: "Термослой", outer: "Зимняя спортивная куртка", lower: "Утеплённые брюки", shoes: "Зимняя обувь" },
+    frost: { upper: "Термослой и флисовая кофта", outer: "Зимняя спортивная куртка", lower: "Утеплённые брюки", shoes: "Зимняя обувь" },
   },
 };
 
@@ -113,14 +113,17 @@ function buildOutfit(feels: number, wind: number, rain: boolean, note: string, p
   else { style = "frost"; title = "Защита от холода"; }
   const wardrobe = preferences.gender === "woman" ? womensWardrobes : wardrobes;
   const pieces: OutfitPieces = { ...wardrobe[preferences.occasion][style], accessories: [] };
-  if (rain && preferences.gender === "woman" && preferences.occasion !== "sport" && ["mild", "cool"].includes(style)) {
-    pieces.outer = "Непромокаемый плащ с поясом";
-    pieces.shoes = "Непромокаемые ботинки";
+  if (rain && feels > 0) {
+    if (["heat", "warm", "mild", "cool"].includes(style)) pieces.outer = preferences.occasion === "sport" ? "Непромокаемая ветровка" : preferences.gender === "woman" ? "Непромокаемый плащ с поясом" : "Непромокаемый дождевик";
+    pieces.shoes = ["cold", "frost"].includes(style) ? "Непромокаемые зимние ботинки" : "Непромокаемые ботинки";
   }
-  if (style === "cold") pieces.accessories.push("Шапка");
-  if (style === "frost") pieces.accessories.push("Шапка и перчатки");
-  if (rain) pieces.accessories.push(feels <= 0 ? "Непромокаемая обувь" : preferences.occasion === "sport" ? "Защита от дождя" : "Зонт или дождевик");
-  if (wind >= 25 && comfort > -3 && comfort < 22) pieces.accessories.push("Защита от ветра");
+  if (style === "cold" || style === "frost") pieces.accessories.push("Шапка", "Шарф");
+  if (style === "frost" || comfort <= 2) pieces.accessories.push("Перчатки");
+  if (style === "frost") pieces.accessories.push("Термослой для ног", "Тёплые носки");
+  if (style === "heat") pieces.accessories.push("Лёгкий головной убор");
+  if (rain && feels <= 0) pieces.shoes = "Непромокаемые зимние ботинки";
+  if (rain && feels > 0 && preferences.occasion !== "sport") pieces.accessories.push("Зонт");
+  if (wind >= 25 && comfort > 2 && comfort < 15 && !pieces.accessories.includes("Шарф")) pieces.accessories.push("Снуд");
   return { style, title, pieces, items: flattenPieces(pieces), note, rain, feels, wind };
 }
 
