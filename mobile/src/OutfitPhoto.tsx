@@ -22,7 +22,7 @@ function touchFrame(event: GestureResponderEvent): TouchFrame | undefined {
 }
 
 /** @param {object} props - Источник фото и действие закрытия. @returns {React.JSX.Element} Полноэкранное фото с приближением и перемещением без дополнительных библиотек. */
-function PhotoLightbox({ source, onClose }: { source: ImageSourcePropType; onClose: () => void }): React.JSX.Element {
+function PhotoLightbox({ source, visual, onClose }: { source?: ImageSourcePropType; visual?: ReactNode; onClose: () => void }): React.JSX.Element {
   const position = useRef<Position>({ scale: 1, x: 0, y: 0 });
   const area = useRef({ width: 1, height: 1 });
   const baseline = useRef<{ frame: TouchFrame; position: Position } | undefined>(undefined);
@@ -81,7 +81,7 @@ function PhotoLightbox({ source, onClose }: { source: ImageSourcePropType; onClo
       </View>
       <View style={styles.viewport} onLayout={measureArea} {...responder.panHandlers}>
         <Animated.View pointerEvents="none" style={[styles.imageArea, { transform: offset.getTranslateTransform() }]}>
-          <Animated.Image source={source} resizeMode="contain" accessibilityLabel="Увеличенный пример образа по погоде" style={[styles.imageArea, { transform: [{ scale: scaleValue }] }]} />
+          {visual ? <Animated.View accessible accessibilityRole="image" accessibilityLabel="Увеличенный образ по погоде" style={[styles.imageArea, { transform: [{ scale: scaleValue }] }]}>{visual}</Animated.View> : <Animated.Image source={source} resizeMode="contain" accessibilityLabel="Увеличенный пример образа по погоде" style={[styles.imageArea, { transform: [{ scale: scaleValue }] }]} />}
         </Animated.View>
       </View>
       <View style={styles.toolbar}>
@@ -97,7 +97,7 @@ function PhotoLightbox({ source, onClose }: { source: ImageSourcePropType; onClo
 }
 
 /** @param {object} props - Фото, оформление, доступное описание и содержимое карточки. @returns {React.JSX.Element} Нажимаемое превью и просмотр на весь экран. */
-export function OutfitPhoto({ source, editorial = false, height, description, children }: { source: ImageSourcePropType; editorial?: boolean; height?: number; description?: string; children?: ReactNode }): React.JSX.Element {
+export function OutfitPhoto({ source, visual, fullVisual, editorial = false, height, description, children }: { source?: ImageSourcePropType; visual?: ReactNode; fullVisual?: ReactNode; editorial?: boolean; height?: number; description?: string; children?: ReactNode }): React.JSX.Element {
   const theme = useTimeTheme();
   const [visible, setVisible] = useState(false);
   /** @returns {void} Открывает фотографию с исходным масштабом. */
@@ -107,11 +107,11 @@ export function OutfitPhoto({ source, editorial = false, height, description, ch
   return (
     <>
       <Pressable accessibilityRole="button" accessibilityLabel={description ? `${description}. Открыть фото образа` : "Открыть фото образа"} accessibilityHint="Полноэкранный просмотр с приближением двумя пальцами" onPress={openPhoto} style={[s.photo, editorial && styles.editorial, height !== undefined && { height }]}>
-        <Image source={source} style={[s.model, editorial && styles.editorialModel]} resizeMode="contain" />
+        {visual ? <View style={StyleSheet.absoluteFill}>{visual}</View> : <Image source={source} style={[s.model, editorial && styles.editorialModel]} resizeMode="contain" />}
         {children}
         <View pointerEvents="none" style={[styles.badge, editorial && styles.editorialBadge]}><Ionicons name="expand-outline" size={16} color={editorial ? theme.primary : "#21483e"} /><Text style={[s.caption, editorial && styles.badgeText, editorial && { color: theme.primary }]}>Рассмотреть</Text></View>
       </Pressable>
-      <Modal visible={visible} animationType="fade" onRequestClose={closePhoto}>{visible && <PhotoLightbox source={source} onClose={closePhoto} />}</Modal>
+      <Modal visible={visible} animationType="fade" onRequestClose={closePhoto}>{visible && <PhotoLightbox source={source} visual={fullVisual || visual} onClose={closePhoto} />}</Modal>
     </>
   );
 }

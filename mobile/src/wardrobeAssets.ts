@@ -2,6 +2,7 @@ import type { ImageSourcePropType } from "react-native";
 
 export const wardrobeAssets = {
   "men-tee": require("../assets/wardrobe/men-tee.webp") as ImageSourcePropType,
+  "men-sport-tee": require("../assets/illustrated/men-sport-tee.webp") as ImageSourcePropType,
   "men-shirt": require("../assets/wardrobe/men-shirt.webp") as ImageSourcePropType,
   "men-linen-shirt": require("../assets/wardrobe/men-linen-shirt.webp") as ImageSourcePropType,
   "men-longsleeve": require("../assets/wardrobe/men-longsleeve.webp") as ImageSourcePropType,

@@ -1,19 +1,20 @@
-import { Image, StyleSheet, View, useWindowDimensions } from "react-native";
+import { IllustratedGarment } from "./CharacterScene";
+import { StyleSheet, View, useWindowDimensions } from "react-native";
 import type { OutfitAdvice, OutfitOccasion } from "../../src/lib/outfit";
-import { wardrobeAssets, type WardrobePhoto } from "./wardrobeAssets";
+import { type WardrobePhoto } from "./wardrobeAssets";
 import { selectWardrobe } from "./wardrobeSelection";
 
 type LegacyPhoto = "tee" | "knit" | "blazer" | "jacket" | "trousers" | "skirt" | "loafers" | "sneakers" | "coat" | "parka" | "boots" | "umbrella" | "hat";
 export type ClothingPhoto = WardrobePhoto | LegacyPhoto;
 const legacy: Record<LegacyPhoto, WardrobePhoto> = { tee: "men-tee", knit: "men-knit", blazer: "women-blazer", jacket: "men-jacket", trousers: "men-chinos", skirt: "women-skirt", loafers: "women-loafers", sneakers: "men-sneakers", coat: "women-coat", parka: "men-parka", boots: "men-boots", umbrella: "umbrella-folded", hat: "hat-cream" };
 
-/** @param {object} props - Идентификатор вещи и размер квадратного контейнера. @returns {React.JSX.Element} Локальный прозрачный вырез с сохранёнными исходными пропорциями. */
+/** @param {object} props - Идентификатор вещи и размер контейнера. @returns {React.JSX.Element} Иллюстрация того же слоя, который надевается на персонажа, с сохранением пропорций. */
 export function ClothingItem({ item, size }: { item: ClothingPhoto; size: number }): React.JSX.Element {
-  const photo = item in wardrobeAssets ? item as WardrobePhoto : legacy[item as LegacyPhoto];
-  return <Image source={wardrobeAssets[photo]} resizeMode="contain" fadeDuration={0} accessible={false} style={{ width: size, height: size }} />;
+  const photo = item in legacy ? legacy[item as LegacyPhoto] : item as WardrobePhoto;
+  return <IllustratedGarment item={photo} size={size} />;
 }
 
-/** @param {OutfitAdvice} advice - Комплект из прогноза. @param {string} gender - Крой вещей. @param {OutfitOccasion} occasion - Стиль комплекта. @returns {object} Единый выбор реальных фотографий для карточки и полного списка. */
+/** @param {OutfitAdvice} advice - Комплект из прогноза. @param {string} gender - Крой вещей. @param {OutfitOccasion} occasion - Стиль комплекта. @returns {object} Единые идентификаторы одежды для персонажа, карточки и списка. */
 export function outfitPhotoItems(advice: OutfitAdvice, gender: "woman" | "man", occasion: OutfitOccasion) {
   return selectWardrobe(advice, gender, occasion);
 }

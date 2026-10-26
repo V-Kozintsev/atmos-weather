@@ -20,7 +20,7 @@ export function upperPhoto(name: string, gender: Gender, advice: OutfitAdvice): 
   if (/свитер|джемпер|тёплый слой/.test(text)) return woman ? ["cold", "frost"].includes(advice.style) || /тёпл|свитер/.test(text) ? "women-warm-knit" : "women-knit" : /тёпл|свитер/.test(text) ? "men-warm-knit" : "men-knit";
   if (/блуз/.test(text)) return /льн/.test(text) || advice.style === "heat" ? "women-linen-blouse" : "women-blouse";
   if (/рубашк/.test(text)) return /льн/.test(text) ? "men-linen-shirt" : "men-shirt";
-  return woman ? /спортив|топ/.test(text) ? "women-sport-tee" : "women-tee" : "men-tee";
+  return woman ? /спортив|топ/.test(text) ? "women-sport-tee" : "women-tee" : /спортив/.test(text) ? "men-sport-tee" : "men-tee";
 }
 
 /** @param {string} name - Название аксессуара. @param {Gender} gender - Вариант комплекта. @returns {WardrobePhoto | undefined} Соответствующий предмет без подмены обуви или зимних вещей зонтом. */
@@ -63,7 +63,8 @@ export function selectWardrobe(advice: OutfitAdvice, gender: Gender, occasion: O
   else if (/лофер/.test(shoeName)) shoes = woman ? "women-loafers" : "men-loafers";
   else if (/сандал|открыт/.test(shoeName)) shoes = woman ? "women-sandals" : "men-sandals";
   else shoes = woman ? occasion === "sport" ? "women-running" : "women-sneakers" : occasion === "sport" ? "men-running" : "men-sneakers";
-  return { top: upperPhoto(advice.pieces.upper, gender, advice), outer: upperPhoto(advice.pieces.outer || advice.pieces.upper, gender, advice), lower, shoes, accessories: advice.pieces.accessories.map((name) => accessoryPhoto(name, gender)).filter((item): item is WardrobePhoto => Boolean(item)) };
+  const visibleTop = advice.pieces.upper.split(/ и /).at(-1)!;
+  return { top: upperPhoto(visibleTop, gender, advice), outer: upperPhoto(advice.pieces.outer || visibleTop, gender, advice), lower, shoes, accessories: advice.pieces.accessories.map((name) => accessoryPhoto(name, gender)).filter((item): item is WardrobePhoto => Boolean(item)) };
 }
 
 /** @param {OutfitAdvice} advice - Реальный комплект. @returns {string} Краткая подпись карточки без длинных уточнений кроя, которые остаются в полном списке. */

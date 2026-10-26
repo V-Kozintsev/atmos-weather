@@ -1,10 +1,11 @@
 import { useTimeTheme, type TimeTheme } from "./timeTheme";
 import { useState, type ReactNode } from "react";
-import { Pressable, StyleSheet, View, useWindowDimensions, type ImageSourcePropType } from "react-native";
+import { Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
 import { Text, fontNames } from "./typography";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import type { OutfitAdvice, OutfitOccasion, WarmthPreference } from "../../src/lib/outfit";
 import { condition, temperature, type Forecast } from "../../src/lib/weather";
+import { CharacterScene } from "./CharacterScene";
 import { OutfitPhoto } from "./OutfitPhoto";
 import { OutfitDetails } from "./OutfitDetails";
 import { UnderlineTabs } from "./UnderlineTabs";
@@ -12,9 +13,9 @@ import { outfitPreferenceSummary } from "./outfitPreferences";
 import { WeatherIcon } from "./WeatherIcon";
 import { s } from "./ui";
 
-/** @param {object} props - Прогноз, комплект, переключатели и настройки. @returns {React.JSX.Element} Компактный экран образа с погодой, фотографиями вещей и вечерней рекомендацией. */
-export function OutfitScreen({ forecast, advice, source, period, gender, occasion, warmth, fahrenheit, eveningHour, eveningHint, onPeriodChange, onGenderChange, children }: {
-  forecast: Forecast; advice: OutfitAdvice; source: ImageSourcePropType;
+/** @param {object} props - Прогноз, комплект, переключатели и настройки. @returns {React.JSX.Element} Экран с послойным персонажем, сезонным окружением и объяснением выбора одежды. */
+export function OutfitScreen({ forecast, advice, period, gender, occasion, warmth, fahrenheit, eveningHour, eveningHint, onPeriodChange, onGenderChange, children }: {
+  forecast: Forecast; advice: OutfitAdvice;
   period: "hour" | "day"; gender: "woman" | "man"; occasion: OutfitOccasion; warmth: WarmthPreference; fahrenheit: boolean;
   eveningHour?: Forecast["hours"][number]; eveningHint: string;
   onPeriodChange: (value: "hour" | "day") => void; onGenderChange: (value: "woman" | "man") => void; children: (settingsVisible: boolean) => ReactNode;
@@ -33,7 +34,7 @@ export function OutfitScreen({ forecast, advice, source, period, gender, occasio
       {!stackedToolbar && <View style={styles.separator} />}
       <View style={stackedToolbar ? styles.stackedGroup : s.flex}><UnderlineTabs label="Вариант одежды" choices={[{ value: "woman", label: "Женский" }, { value: "man", label: "Мужской" }]} value={gender} onChange={onGenderChange} /></View>
     </View>
-    <OutfitPhoto source={source} editorial height={heroHeight} description={`${title}. ${condition(forecast.current.code)}, ${temperature(forecast.current.temperature, fahrenheit)}°, ощущается как ${temperature(forecast.current.feels, fahrenheit)}°. ${advice.note}`}>
+    <OutfitPhoto visual={<CharacterScene forecast={forecast} advice={advice} gender={gender} occasion={occasion} />} fullVisual={<CharacterScene forecast={forecast} advice={advice} gender={gender} occasion={occasion} full />} editorial height={heroHeight} description={`${title}. ${condition(forecast.current.code)}, ${temperature(forecast.current.temperature, fahrenheit)}°, ощущается как ${temperature(forecast.current.feels, fahrenheit)}°. ${advice.note}`}>
       <View pointerEvents="none" style={styles.weather}>
         <WeatherIcon code={forecast.current.code} night={!forecast.current.day} surface={theme.dark ? "dark" : "light"} size={48} />
         <Text style={styles.temperature}>{temperature(forecast.current.temperature, fahrenheit)}°</Text>
@@ -46,6 +47,7 @@ export function OutfitScreen({ forecast, advice, source, period, gender, occasio
         <Text style={styles.summaryText}>{period === "day" ? "Комплект на весь день" : "Комфортно сейчас"}</Text>
       </View>
     </OutfitPhoto>
+    <Text style={styles.reason}>{advice.note}</Text>
     <OutfitDetails advice={advice} gender={gender} occasion={occasion} />
     <Pressable accessibilityRole="button" accessibilityLabel="Учесть вечер в комплекте на весь день" onPress={() => onPeriodChange("day")} style={styles.evening}>
       <Ionicons name="moon-outline" size={22} color={theme.primary} />
@@ -58,7 +60,7 @@ export function OutfitScreen({ forecast, advice, source, period, gender, occasio
       <Ionicons name={customizing ? "chevron-up" : "chevron-forward"} size={19} color={theme.muted} />
     </Pressable>
     <View style={styles.preferences}>{children(customizing)}</View>
-    <Text style={styles.disclaimer}>Образ — пример. Ориентируйтесь на список и свой комфорт.</Text>
+    <Text style={styles.disclaimer}>Иллюстрация комплекта. Учитывайте свой комфорт.</Text>
   </View>;
 }
 
@@ -78,6 +80,7 @@ const createStyles = (theme: TimeTheme) => StyleSheet.create({
   rule: { width: 30, height: 1, backgroundColor: theme.accent, marginBottom: 3 },
   heroTitle: { fontFamily: serif, fontSize: 26, lineHeight: 29, fontWeight: "600", color: theme.primary },
   summaryText: { fontSize: 12, lineHeight: 17, color: theme.text },
+  reason: { fontSize: 12, lineHeight: 19, color: theme.text },
   evening: { borderTopWidth: 1, borderBottomWidth: 1, borderColor: theme.divider, flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, minHeight: 48 },
   eveningText: { flex: 1, fontSize: 13, lineHeight: 20, color: theme.muted },
   customize: { flexDirection: "row", alignItems: "center", gap: 14, minHeight: 58, paddingVertical: 7 },

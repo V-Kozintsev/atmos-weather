@@ -60,23 +60,6 @@ const initial: Preferences = {
   cityBackground: true,
   sceneMode: "auto",
 };
-const images = {
-  woman: {
-    warm: require("./assets/woman-warm-v2.png"),
-    mild: require("./assets/woman-mild-v2.png"),
-    cool: require("./assets/woman-cool-v2.png"),
-    cold: require("./assets/woman-cold-v2.png"),
-    rain: require("./assets/woman-rain-v2.png"),
-  },
-  man: {
-    warm: require("../public/outfits/man-warm.webp"),
-    mild: require("../public/outfits/man-mild.webp"),
-    cool: require("../public/outfits/man-cool.webp"),
-    cold: require("../public/outfits/man-cold.webp"),
-    rain: require("../public/outfits/man-rain.webp"),
-  },
-};
-const womanSportImage = require("./assets/woman-sport-v2.png");
 const tabs: [Tab, string, keyof typeof Ionicons.glyphMap][] = [
   ["weather", "Погода", "partly-sunny-outline"],
   ["outfit", "Что надеть", "shirt-outline"],
@@ -277,21 +260,6 @@ function Atmos(): React.JSX.Element {
           )
         : outfitForHour(firstHour, preferences, forecast.hours[1])
       : undefined;
-  const photoStyle = advice
-    ? advice.rain && ["mild", "cool"].includes(advice.style)
-      ? "rain"
-      : ["heat", "warm"].includes(advice.style)
-        ? "warm"
-        : advice.style === "mild"
-          ? "mild"
-          : advice.style === "cool"
-            ? "cool"
-            : "cold"
-    : "mild";
-  const outfitImage = preferences.gender === "woman" && preferences.occasion === "sport"
-    && advice && ["heat", "warm"].includes(advice.style) && !advice.rain
-    ? womanSportImage
-    : images[preferences.gender][photoStyle];
   const eveningHours = forecast?.hours.filter((hour) => hour.time.startsWith(forecast.days[0].date) && Number(hour.time.slice(11, 13)) >= 18) || [];
   const eveningHour = eveningHours.reduce<(typeof eveningHours)[number] | undefined>((coldest, hour) => !coldest || hour.feels < coldest.feels ? hour : coldest, undefined);
   const eveningOutfit = eveningHour ? outfitForHour(eveningHour, preferences) : undefined;
@@ -379,7 +347,7 @@ function Atmos(): React.JSX.Element {
         )}
         {tab === "weather" && forecast && <WeatherHome forecast={forecast} advice={advice} gender={preferences.gender} occasion={preferences.occasion} period={period} eveningHour={eveningHour} eveningHint={eveningHint} fahrenheit={preferences.fahrenheit} background={preferences.cityBackground} sceneMode={preferences.sceneMode} photo={cityPhoto} stale={stale} favorite={favorite} dayIndex={dayIndex} hours={selectedHours} wide={wide} onFavorite={toggleFavorite} onOutfit={() => setTab("outfit")} onDay={setDayIndex} onShare={() => void share()} onRefresh={refresh} refreshing={loading} onSource={(url) => void openLink(url)} />}
         {tab === "outfit" && advice && forecast && (
-          <OutfitScreen forecast={forecast} advice={advice} source={outfitImage} period={period} gender={preferences.gender} occasion={preferences.occasion} warmth={preferences.warmth} fahrenheit={preferences.fahrenheit} eveningHour={eveningHour} eveningHint={eveningHint} onPeriodChange={setPeriod} onGenderChange={(gender) => update({ gender })}>
+          <OutfitScreen forecast={forecast} advice={advice} period={period} gender={preferences.gender} occasion={preferences.occasion} warmth={preferences.warmth} fahrenheit={preferences.fahrenheit} eveningHour={eveningHour} eveningHint={eveningHint} onPeriodChange={setPeriod} onGenderChange={(gender) => update({ gender })}>
             {(settingsVisible) => <OutfitCustomization settingsVisible={settingsVisible} advice={advice} gender={preferences.gender} occasion={preferences.occasion} warmth={preferences.warmth} onOccasionChange={(occasion) => update({ occasion })} onWarmthChange={(warmth) => update({ warmth })} onOpen={openLink} />}
           </OutfitScreen>
         )}
