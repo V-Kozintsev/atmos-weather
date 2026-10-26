@@ -7,12 +7,13 @@ import { OutfitPreview } from "./OutfitPreview";
 import { outfitCardSummary } from "./wardrobeSelection";
 
 /** @param {object} props - Реальный комплект, вариант одежды, период, вечерняя подсказка и переход. @returns {React.JSX.Element} Компактная карточка образа с полной подписью и пропорциональными фотографиями вещей. */
-export function OutfitCard({ advice, gender, occasion, period, evening, compact = false, onPress }: {
-  advice: OutfitAdvice; gender: "woman" | "man"; occasion: OutfitOccasion; period: "hour" | "day"; evening: string; compact?: boolean; onPress: () => void;
+export function OutfitCard({ advice, gender, occasion, period, evening, eveningTemperature, description, compact = false, onPress }: {
+  advice: OutfitAdvice; gender: "woman" | "man"; occasion: OutfitOccasion; period: "hour" | "day"; evening: string; eveningTemperature?: string; description?: string; compact?: boolean; onPress: () => void;
 }): React.JSX.Element {
   const [width, setWidth] = useState(350);
   const { fontScale } = useWindowDimensions();
-  const stacked = width < 310 || fontScale > 1.25;
+  const stacked = width < 300 || fontScale > 1.3;
+  const artworkSize = Math.min(compact ? 142 : 154, Math.max(130, width * .44));
   const title = advice.rain ? advice.feels <= 0 ? "Защита от снега" : "На случай дождя" : ["heat", "warm"].includes(advice.style) ? "Сегодня налегке" : advice.style === "mild" ? "Лёгкий слой" : "Тёплые слои";
   /** @param {LayoutChangeEvent} event - Фактическая ширина карточки внутри колонки. @returns {void} Перестраивает композицию при узкой карточке, сохраняя читаемость текста. */
   function measure(event: LayoutChangeEvent): void { setWidth(event.nativeEvent.layout.width); }
@@ -23,33 +24,30 @@ export function OutfitCard({ advice, gender, occasion, period, evening, compact 
       <View style={styles.copy}>
         <Text style={styles.eyebrow}>{period === "day" ? "ОБРАЗ НА ВЕСЬ ДЕНЬ" : "ЧТО НАДЕТЬ СЕГОДНЯ"}</Text>
         <Text style={styles.title}>{title}</Text>
-        <Text style={styles.description}>{outfitCardSummary(advice)}</Text>
-        <View style={styles.cta}><Text style={styles.ctaText}>Смотреть образ</Text><Ionicons name="arrow-forward" size={17} color="#21483e" /></View>
+        <Text style={styles.description}>{description || outfitCardSummary(advice)}</Text>
+        <View style={styles.cta}><Text style={styles.ctaText}>Смотреть образ</Text><Ionicons name="arrow-forward-outline" size={19} color="#21483e" style={{ transform: [{ rotate: "-45deg" }] }} /></View>
       </View>
-      <View pointerEvents="none" style={[styles.artwork, stacked && styles.artworkStacked]}>
-        <View style={[styles.light, advice.rain && styles.rainLight]} />
-        <OutfitPreview advice={advice} gender={gender} occasion={occasion} />
+      <View pointerEvents="none" style={[styles.artwork, { width: artworkSize, height: artworkSize * 1.16 }, stacked && styles.artworkStacked]}>
+        <OutfitPreview advice={advice} gender={gender} occasion={occasion} size={artworkSize} />
       </View>
     </View>
-    <View style={styles.footer}><Ionicons name="moon-outline" color="#345b4c" size={18} /><Text style={styles.evening}>{evening}</Text><Ionicons name="chevron-forward" size={16} color="#527060" /></View>
+    <View style={styles.footer}><Ionicons name="moon-outline" color="#345b4c" size={21} /><Text style={styles.evening}>{eveningTemperature ? `К вечеру ${eveningTemperature} — ${evening.replace(/^На вечер\s*—\s*/i, "")}` : evening}</Text><Ionicons name="chevron-forward" size={18} color="#21483e" /></View>
   </Pressable>;
 }
 const styles = StyleSheet.create({
-  card: { backgroundColor: "#fdfdf8", borderRadius: 22, borderWidth: 1, borderColor: "#e1e3d8", shadowColor: "#3d4632", shadowOpacity: .055, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 1 },
+  card: { backgroundColor: "transparent" },
   pressed: { opacity: .85 },
-  main: { flexDirection: "row", alignItems: "center", paddingVertical: 13, paddingLeft: 16, paddingRight: 10, minHeight: 150, gap: 4 },
-  compact: { paddingVertical: 11, paddingLeft: 13, minHeight: 142 },
+  main: { flexDirection: "row", alignItems: "center", paddingVertical: 10, minHeight: 178, gap: 0 },
+  compact: { paddingVertical: 5, minHeight: 166 },
   stacked: { flexDirection: "column", alignItems: "stretch", gap: 8 },
-  copy: { flex: 1, minWidth: 0, gap: 5, zIndex: 1 },
-  eyebrow: { fontSize: 10, lineHeight: 15, letterSpacing: .7, fontWeight: "600", color: "#657662" },
-  title: { fontSize: 21, lineHeight: 26, fontWeight: "700", color: "#21483e" },
-  description: { fontSize: 13, lineHeight: 19, color: "#4d6254" },
-  cta: { flexDirection: "row", alignItems: "center", gap: 9, minHeight: 28, marginTop: 3 },
-  ctaText: { fontSize: 12, lineHeight: 18, fontWeight: "600", color: "#21483e", textDecorationLine: "underline" },
-  artwork: { width: 138, height: 152, alignSelf: "center", alignItems: "center", justifyContent: "center" },
-  artworkStacked: { alignSelf: "center", width: 190, height: 162 },
-  light: { position: "absolute", width: 130, height: 122, borderRadius: 62, right: -3, backgroundColor: "#f0eee1", opacity: .55 },
-  rainLight: { backgroundColor: "#e6ece9" },
-  footer: { borderTopWidth: 1, borderTopColor: "#e8e9df", paddingHorizontal: 13, paddingVertical: 9, flexDirection: "row", alignItems: "center", gap: 9, minHeight: 37 },
-  evening: { flex: 1, fontSize: 12, lineHeight: 18, color: "#4c6555" },
+  copy: { flex: 1, minWidth: 0, gap: 7, zIndex: 1 },
+  eyebrow: { fontSize: 9, lineHeight: 14, letterSpacing: 1.1, fontWeight: "700", color: "#21483e" },
+  title: { fontSize: 26, lineHeight: 31, fontWeight: "700", color: "#143e35", letterSpacing: -.7 },
+  description: { fontSize: 14, lineHeight: 21, color: "#59645e" },
+  cta: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 32, marginTop: 9 },
+  ctaText: { fontSize: 14, lineHeight: 21, fontWeight: "500", color: "#21483e", textDecorationLine: "underline" },
+  artwork: { alignSelf: "center", alignItems: "center", justifyContent: "center" },
+  artworkStacked: { alignSelf: "center" },
+  footer: { borderTopWidth: 1, borderBottomWidth: 1, borderColor: "#cdd4c8", paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 10, minHeight: 47 },
+  evening: { flex: 1, fontSize: 12, lineHeight: 19, color: "#43534b" },
 });

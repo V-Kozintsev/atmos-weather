@@ -9,13 +9,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Location from "expo-location";
 import {
   CITIES,
-  bestHour,
-  clock,
-  condition,
   isCity,
-  temperature,
-  weekday,
-  windSpeed,
   type City,
 } from "../src/lib/weather";
 import {
@@ -28,8 +22,7 @@ import { useForecast } from "./src/useForecast";
 import { read, write } from "./src/storage";
 import { searchCities, setDiagnostics, log } from "./src/weather";
 import { Chip, s } from "./src/ui";
-import { WeatherIcon } from "./src/WeatherIcon";
-import { OutfitCard } from "./src/OutfitCard";
+import { WeatherHome } from "./src/WeatherHome";
 import { OutfitScreen } from "./src/OutfitScreen";
 import { SettingsScreen } from "./src/SettingsScreen";
 import { OutfitCustomization } from "./src/OutfitCustomization";
@@ -38,7 +31,7 @@ import { useReviews, reviewUrl } from "./src/reviews";
 import { useAppUpdates } from "./src/useAppUpdates";
 import { appName, appVersion } from "../src/lib/appInfo";
 import { UpdateCard } from "./src/UpdateCard";
-import { CityBackdrop, sceneModes, cityPhotoCredits, type SceneMode } from "./src/CityBackdrop";
+import { sceneModes, cityPhotoCredits, type SceneMode } from "./src/CityBackdrop";
 import { useCityPhoto } from "./src/cityPhotos";
 import { cityPhotoKey } from "./src/CityBackdrop";
 
@@ -261,12 +254,8 @@ function Atmos(): React.JSX.Element {
       setNotice("Не удалось поделиться прогнозом.");
     }
   }
-  /** @param {number} value - Температура в Цельсиях. @returns {string} Температура в выбранных единицах. */
-  function degrees(value: number): string {
-    return `${temperature(value, preferences.fahrenheit)}°`;
-  }
 
-  const selectedDay = forecast?.days[Math.min(dayIndex, 6)];
+  const selectedDay = forecast?.days[Math.min(dayIndex, forecast.days.length - 1)];
   const selectedHours =
     forecast?.hours
       .filter((hour) => hour.time.startsWith(selectedDay?.date || ""))
@@ -323,24 +312,22 @@ function Atmos(): React.JSX.Element {
             (value) => !favorites.some((f) => f.id === value.id),
           ),
         ];
-  const walk = bestHour(forecast?.hours.slice(0, 24) || [], "walk");
 
   return (
     <SafeAreaView style={s.safe} edges={["top", "left", "right", "bottom"]}>
       <StatusBar style="dark" />
-      <View style={[s.header, wide && s.bodyWide, compactWeather && s.headerCompact]}>
+      <View style={[s.header, wide && s.bodyWide, tab === "weather" && s.headerWeather]}>
         <View style={{ flexShrink: 1 }}>
-          <Text style={tab === "outfit" ? s.outfitPageTitle : s.brand}>{tab === "outfit" ? "Что надеть" : appName}</Text>
-          {!compactWeather && tab === "weather" && <Text style={s.caption}>Прогноз на каждый день</Text>}
+          <Text style={tab === "outfit" ? s.outfitPageTitle : tab === "weather" ? s.weatherBrand : s.brand}>{tab === "outfit" ? "Что надеть" : appName}</Text>
         </View>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Выбрать город"
-          style={[s.row, { minHeight: 48, maxWidth: "50%" }]}
+          style={[s.row, { minHeight: 44, maxWidth: "43%", gap: 6 }]}
           onPress={() => setSearchVisible(true)}
         >
           <Ionicons name="location-outline" size={20} color="#21483e" />
-          <Text numberOfLines={1} style={[s.text, { flexShrink: 1 }]}>
+          <Text style={[s.text, { flexShrink: 1 }, tab === "weather" && s.weatherLocation]}>
             {city?.name || "Загрузка"}
           </Text>
         </Pressable>
@@ -349,7 +336,7 @@ function Atmos(): React.JSX.Element {
       <ScrollView
         key={`${tab}:${city?.id}`}
         style={s.flex}
-        contentContainerStyle={[s.body, tab === "weather" && wide && s.bodyWide, compactWeather && s.weatherBodyCompact, tab !== "weather" && s.outfitBody]}
+        contentContainerStyle={[s.body, tab === "weather" && s.weatherBody, tab === "weather" && wide && s.bodyWide, tab !== "weather" && s.outfitBody]}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
@@ -386,132 +373,7 @@ function Atmos(): React.JSX.Element {
             </Text>
           </View>
         )}
-        {tab === "weather" && forecast && (
-          <>
-            <View style={[s.columns, wide && s.columnsWide, compactWeather && s.weatherSpacingCompact]}>
-            <View style={[s.column, wide && s.columnWide, compactWeather && s.weatherSpacingCompact]}>
-            <View style={[s.hero, compactWeather && s.heroCompact]}>
-              {preferences.cityBackground && <CityBackdrop forecast={forecast} mode={preferences.sceneMode} photo={cityPhoto} />}
-              <View style={[s.row, compactWeather && s.heroHeadingCompact]}>
-                <Text style={[s.heroLabel, s.flex]}>
-                  {stale ? "СОХРАНЁННЫЙ ПРОГНОЗ" : "СЕЙЧАС В ГОРОДЕ"}
-                </Text>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    favorite ? "Убрать из избранного" : "Добавить в избранное"
-                  }
-                  onPress={toggleFavorite}
-                  style={[s.iconButton, compactWeather && s.heroFavoriteCompact]}
-                >
-                  <Ionicons
-                    name={favorite ? "star" : "star-outline"}
-                    size={24}
-                    color="#f1ddad"
-                  />
-                </Pressable>
-              </View>
-              <View style={s.row}>
-                <View style={s.flex}>
-                  <Text style={s.degrees}>
-                    {degrees(forecast.current.temperature)}
-                  </Text>
-                  <Text style={s.heroTitle}>
-                    {condition(forecast.current.code)}
-                  </Text>
-                </View>
-                <WeatherIcon
-                  code={forecast.current.code}
-                  size={92}
-                  night={!forecast.current.day}
-                />
-              </View>
-              <Text style={s.heroText}>
-                Ощущается как {degrees(forecast.current.feels)} ·{" "}
-                {degrees(forecast.days[0].min)} /{" "}
-                {degrees(forecast.days[0].max)}
-              </Text>
-              <Text style={s.heroText}>
-                Ветер {windSpeed(forecast.current.wind)} м/с · Влажность{" "}
-                {forecast.current.humidity}%
-              </Text>
-            </View>
-            {!compactWeather && cityPhoto && preferences.cityBackground && <Text accessibilityRole="link" style={s.caption} onPress={() => void openLink(cityPhoto.source)}>Фото города · автор и источник ↗</Text>}
-            {advice && (
-              <OutfitCard advice={advice} gender={preferences.gender} occasion={preferences.occasion} period={period} evening={eveningHint} compact={compactWeather} onPress={() => setTab("outfit")} />
-            )}
-            </View>
-            <View style={[s.column, wide && s.columnWide, compactWeather && s.weatherSpacingCompact]}>
-            <Text style={s.title}>Ближайшие часы</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={s.horizontal}
-            >
-              {selectedHours.map((hour) => (
-                <View key={hour.time} style={[s.hour, compactWeather && s.hourCompact]}>
-                  <Text style={s.hourCaption}>{clock(hour.time)}</Text>
-                  <View style={compactWeather ? s.hourReadingCompact : s.hourReading}>
-                  <WeatherIcon
-                    code={hour.code}
-                    size={38}
-                    night={!hour.day}
-                  />
-                  <Text style={s.hourDegrees}>{degrees(hour.temperature)}</Text>
-                  </View>
-                </View>
-              ))}
-            </ScrollView>
-            {compactWeather && cityPhoto && preferences.cityBackground && <Text accessibilityRole="link" style={s.caption} onPress={() => void openLink(cityPhoto.source)}>Фото города · автор и источник ↗</Text>}
-            <Text style={s.title}>На неделю</Text>
-            <View style={s.card}>
-              {forecast.days.map((day, index) => (
-                <Pressable
-                  key={day.date}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: dayIndex === index }}
-                  onPress={() => setDayIndex(index)}
-                  style={[s.day, dayIndex === index && s.daySelected]}
-                >
-                  <Text style={s.dayName}>
-                    {index === 0 ? "Сегодня" : weekday(day.date)}
-                  </Text>
-                  <View style={s.weatherIconWell}><WeatherIcon code={index === 0 ? forecast.current.code : day.code} night={index === 0 && !forecast.current.day} size={36} /></View>
-                  <Text style={s.text}>
-                    {degrees(day.min)} / {degrees(day.max)}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            <Text style={s.caption}>
-              Выберите день — почасовой прогноз выше изменится.
-            </Text>
-            </View>
-            </View>
-            <View style={s.card}>
-              <Text style={s.title}>Время для прогулки</Text>
-              <Text style={s.subtitle}>
-                {walk
-                  ? `${walk.time.slice(0, 10) === forecast.days[0].date ? "Сегодня" : "Завтра"}, ${clock(walk.time)} — хороший момент`
-                  : "Погода требует осторожности"}
-              </Text>
-              <Text style={s.text}>
-                {walk
-                  ? `${degrees(walk.feels)} по ощущениям, ветер ${windSpeed(walk.wind)} м/с. Выбран дневной час без сильного ветра и существенных осадков.`
-                  : "В ближайшие часы нет комфортного дневного периода по нашим правилам."}
-              </Text>
-            </View>
-            <View style={s.card}>
-              <Text style={s.eyebrow}>РИТМ ДНЯ</Text>
-              <Text style={s.text}>
-                Восход {clock(forecast.days[0].sunrise) || "—"} · Закат{" "}
-                {clock(forecast.days[0].sunset) || "—"}
-              </Text>
-              <Text style={s.caption}>Время города · {forecast.timezone}</Text>
-            </View>
-            <Chip label="Поделиться прогнозом" onPress={() => void share()} />
-          </>
-        )}
+        {tab === "weather" && forecast && <WeatherHome forecast={forecast} advice={advice} gender={preferences.gender} occasion={preferences.occasion} period={period} eveningHour={eveningHour} eveningHint={eveningHint} fahrenheit={preferences.fahrenheit} background={preferences.cityBackground} sceneMode={preferences.sceneMode} photo={cityPhoto} stale={stale} favorite={favorite} dayIndex={dayIndex} hours={selectedHours} wide={wide} onFavorite={toggleFavorite} onOutfit={() => setTab("outfit")} onDay={setDayIndex} onShare={() => void share()} onRefresh={refresh} refreshing={loading} onSource={(url) => void openLink(url)} />}
         {tab === "outfit" && advice && forecast && (
           <OutfitScreen forecast={forecast} advice={advice} source={outfitImage} period={period} gender={preferences.gender} occasion={preferences.occasion} fahrenheit={preferences.fahrenheit} eveningHour={eveningHour} eveningHint={eveningHint} onPeriodChange={setPeriod} onGenderChange={(gender) => update({ gender })}>
             <OutfitCustomization advice={advice} gender={preferences.gender} occasion={preferences.occasion} warmth={preferences.warmth} onOccasionChange={(occasion) => update({ occasion })} onWarmthChange={(warmth) => update({ warmth })} onOpen={openLink} />
@@ -561,7 +423,7 @@ function Atmos(): React.JSX.Element {
                 onPress={() => void openLink("https://puskweb.ru/")}
               />
         </SettingsScreen>}
-        {forecast && tab !== "settings" && (
+        {forecast && tab === "outfit" && (
           <Text style={s.caption}>
             {stale ? "Сохранено" : "Обновлено"}{" "}
             {new Date(forecast.fetchedAt).toLocaleTimeString("ru-RU", {
@@ -572,7 +434,7 @@ function Atmos(): React.JSX.Element {
             {Platform.OS !== "web" ? "· Потяните вниз для обновления" : ""}
           </Text>
         )}
-        {forecast && tab !== "settings" && Platform.OS === "web" && <Chip label={loading ? "Обновляем…" : "Обновить прогноз"} onPress={refresh} />}
+        {forecast && tab === "outfit" && Platform.OS === "web" && <Chip label={loading ? "Обновляем…" : "Обновить прогноз"} onPress={refresh} />}
         {tab === "weather" && reviews.visible && (
           <View style={s.card}>
             <Text style={s.subtitle}>Как вам приложение?</Text>

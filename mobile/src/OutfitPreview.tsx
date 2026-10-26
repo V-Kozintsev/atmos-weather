@@ -19,17 +19,18 @@ export function outfitPhotoItems(advice: OutfitAdvice, gender: "woman" | "man", 
 }
 
 /** @param {object} props - Реальный комплект и его предпочтения. @returns {React.JSX.Element} Статичная композиция основных вещей без растяжения, обрезки и сетевых запросов. */
-export function OutfitPreview({ advice, gender, occasion }: { advice: OutfitAdvice; gender: "woman" | "man"; occasion: OutfitOccasion }): React.JSX.Element {
+export function OutfitPreview({ advice, gender, occasion, size: requestedSize }: { advice: OutfitAdvice; gender: "woman" | "man"; occasion: OutfitOccasion; size?: number }): React.JSX.Element {
   const { width: screenWidth } = useWindowDimensions();
-  const size = screenWidth >= 768 ? 148 : 126;
+  const size = requestedSize ?? (screenWidth >= 768 ? 148 : 126);
   const photos = selectWardrobe(advice, gender, occasion);
   const upper = advice.pieces.outer ? photos.outer : photos.top;
   const accessories = photos.accessories.slice(0, 2);
   return <View style={styles.scene} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
     <View style={{ width: size, height: size * 1.16 }}>
-      <View style={{ position: "absolute", right: -size * .01, top: size * .18, transform: [{ rotate: "10deg" }] }}><ClothingItem item={photos.lower} size={size * .9} /></View>
-      <View style={{ position: "absolute", left: -size * .03, top: 0, transform: [{ rotate: "-9deg" }] }}><ClothingItem item={upper} size={size * .9} /></View>
-      <View style={{ position: "absolute", right: size * .04, bottom: 0, transform: [{ rotate: "-12deg" }] }}><ClothingItem item={photos.shoes} size={size * .72} /></View>
+      <View style={{ position: "absolute", right: -size * .07, top: size * .1, transform: [{ rotate: "10deg" }] }}><ClothingItem item={photos.lower} size={size * .98} /></View>
+      <View style={{ position: "absolute", left: -size * .09, top: 0, transform: [{ rotate: "-8deg" }] }}><ClothingItem item={upper} size={size} /></View>
+      {advice.pieces.outer && <View style={{ position: "absolute", left: size * .04, bottom: size * .03, transform: [{ rotate: "-7deg" }] }}><ClothingItem item={photos.top} size={size * .56} /></View>}
+      <View style={{ position: "absolute", right: -size * .02, bottom: 0, transform: [{ rotate: "-10deg" }] }}><ClothingItem item={photos.shoes} size={size * .58} /></View>
       {accessories.map((photo, index) => <View key={`${photo}:${index}`} style={{ position: "absolute", right: index ? -size * .02 : size * .03, top: index ? size * .36 : -size * .02, transform: [{ rotate: index ? "12deg" : "-8deg" }] }}><ClothingItem item={photo} size={size * .3} /></View>)}
     </View>
   </View>;
