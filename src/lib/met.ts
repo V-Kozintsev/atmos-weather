@@ -121,7 +121,9 @@ export function parseMetForecast(city: City, data: MetResponse): Forecast {
     return {
       time: localTime(new Date(point.time), timezone),
       temperature: details.air_temperature,
-      feels: Number.isFinite(details.apparent_air_temperature) ? details.apparent_air_temperature! : apparentTemperature(details.air_temperature, details.relative_humidity, details.wind_speed),
+      feels: Number.isFinite(details.relative_humidity) && Number.isFinite(details.wind_speed)
+        ? apparentTemperature(details.air_temperature, details.relative_humidity, details.wind_speed)
+        : Number.isFinite(details.apparent_air_temperature) ? details.apparent_air_temperature! : details.air_temperature,
       rain: precipitation(point),
       wind: (details.wind_speed ?? 0) * 3.6,
       code: weatherCode(symbol),

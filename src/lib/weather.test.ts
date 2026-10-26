@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { parseMetForecast } from "./met";
 import {
   apparentTemperature,
   bestHour,
@@ -12,6 +13,16 @@ import {
 } from "./weather";
 
 describe("apparent temperature", () => {
+  it("recalculates a mild windy MET forecast even when provider feels equals air temperature", () => {
+    const forecast = parseMetForecast(CITIES[2], { properties: { timeseries: Array.from({ length: 56 }, (_, index) => ({
+      time: new Date(Date.UTC(2026, 9, 26) + index * 3 * 3600_000).toISOString(),
+      data: { instant: { details: { air_temperature: 18.5, apparent_air_temperature: 18.5, relative_humidity: 66, wind_speed: 4 } }, next_1_hours: { summary: { symbol_code: "clearsky_day" } } },
+    })) } });
+    expect(forecast.current.temperature).toBe(18.5);
+    expect(forecast.current.feels).toBeLessThan(17);
+    expect(forecast.hours[0].feels).toBe(forecast.current.feels);
+    expect(forecast.hours[0].wind).toBe(14.4);
+  });
   it("includes wind cooling at mild temperatures instead of echoing the thermometer", () => {
     expect(apparentTemperature(19, 60, 5)).toBeCloseTo(15.83, 1);
     expect(apparentTemperature(19, 60, 5)).toBeLessThan(apparentTemperature(19, 60, 1));
