@@ -5,7 +5,7 @@ export type { AppUpdateInfo, InstallState };
 interface UpdateSdk extends NativeModule {
   init(): void;
   getAppUpdateInfo(): Promise<AppUpdateInfo>;
-  download(): Promise<number>;
+  silent(): Promise<number>;
   completeUpdate(type: number): Promise<boolean>;
 }
 // Не загружаем JS-обёртку SDK: она создаёт NativeEventEmitter даже в браузере и Expo Go.
@@ -36,8 +36,8 @@ export function listenForUpdates(listener: (state: InstallState) => void): () =>
   return unsubscribe;
 }
 
-/** @returns {Promise<number>} Запускает отложенное обновление с официальным подтверждением RuStore. */
-export function downloadUpdate(): Promise<number> { return client().download(); }
+/** @returns {Promise<number>} После нажатия пользователем запускает фоновую загрузку с нашим интерфейсом. */
+export function downloadUpdate(): Promise<number> { return client().silent(); }
 
 /** @returns {Promise<boolean>} Устанавливает скачанный APK в отложенном сценарии. */
 export function installUpdate(): Promise<boolean> { return client().completeUpdate(0); }
