@@ -1,38 +1,44 @@
-import { IllustratedGarment } from "./CharacterScene";
-import { StyleSheet, View, useWindowDimensions } from "react-native";
+import { useId } from "react";
+import { Image, StyleSheet, View, useWindowDimensions } from "react-native";
+import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
 import type { OutfitAdvice, OutfitOccasion } from "../../src/lib/outfit";
-import { type WardrobePhoto } from "./wardrobeAssets";
+import type { WardrobePhoto } from "./wardrobeAssets";
 import { selectWardrobe } from "./wardrobeSelection";
+import { flatlaySource } from "./flatlayAssets";
+import { useTimeTheme } from "./timeTheme";
 
 type LegacyPhoto = "tee" | "knit" | "blazer" | "jacket" | "trousers" | "skirt" | "loafers" | "sneakers" | "coat" | "parka" | "boots" | "umbrella" | "hat";
 export type ClothingPhoto = WardrobePhoto | LegacyPhoto;
 const legacy: Record<LegacyPhoto, WardrobePhoto> = { tee: "men-tee", knit: "men-knit", blazer: "women-blazer", jacket: "men-jacket", trousers: "men-chinos", skirt: "women-skirt", loafers: "women-loafers", sneakers: "men-sneakers", coat: "women-coat", parka: "men-parka", boots: "men-boots", umbrella: "umbrella-folded", hat: "hat-cream" };
 
-/** @param {object} props - Идентификатор вещи и размер контейнера. @returns {React.JSX.Element} Иллюстрация того же слоя, который надевается на персонажа, с сохранением пропорций. */
+/** @param {object} props - Вещь и размер её контейнера. @returns {React.JSX.Element} Готовый вырез предмета с сохранением пропорций, общий для всех экранов. */
 export function ClothingItem({ item, size }: { item: ClothingPhoto; size: number }): React.JSX.Element {
   const photo = item in legacy ? legacy[item as LegacyPhoto] : item as WardrobePhoto;
-  return <IllustratedGarment item={photo} size={size} />;
+  return <Image source={flatlaySource(photo)} resizeMode="contain" fadeDuration={0} accessible={false} style={{ width: size, height: size }} />;
 }
 
-/** @param {OutfitAdvice} advice - Комплект из прогноза. @param {string} gender - Крой вещей. @param {OutfitOccasion} occasion - Стиль комплекта. @returns {object} Единые идентификаторы одежды для персонажа, карточки и списка. */
+/** @param {OutfitAdvice} advice - Комплект из прогноза. @param {string} gender - Крой вещей. @param {OutfitOccasion} occasion - Стиль комплекта. @returns {object} Единые идентификаторы предметов для раскладки и списка. */
 export function outfitPhotoItems(advice: OutfitAdvice, gender: "woman" | "man", occasion: OutfitOccasion) {
   return selectWardrobe(advice, gender, occasion);
 }
 
-/** @param {object} props - Реальный комплект и его предпочтения. @returns {React.JSX.Element} Статичная композиция основных вещей без растяжения, обрезки и сетевых запросов. */
-export function OutfitPreview({ advice, gender, occasion, size: requestedSize }: { advice: OutfitAdvice; gender: "woman" | "man"; occasion: OutfitOccasion; size?: number }): React.JSX.Element {
+/** @param {object} props - Комплект, вариант одежды, размер и мягкая подложка. @returns {React.JSX.Element} Раскладка отдельных вещей без манекена, стыковки частей тела и сетевой генерации. */
+export function OutfitPreview({ advice, gender, occasion, size: requestedSize, backdrop = false }: { advice: OutfitAdvice; gender: "woman" | "man"; occasion: OutfitOccasion; size?: number; backdrop?: boolean }): React.JSX.Element {
+  const theme = useTimeTheme();
+  const id = useId().replace(/[^a-zA-Z0-9]/g, "");
   const { width: screenWidth } = useWindowDimensions();
   const size = requestedSize ?? (screenWidth >= 768 ? 148 : 126);
   const photos = selectWardrobe(advice, gender, occasion);
   const upper = advice.pieces.outer ? photos.outer : photos.top;
-  const accessories = photos.accessories.slice(0, 2);
+  const accessories = photos.accessories.slice(0, 3);
   return <View style={styles.scene} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-    <View style={{ width: size, height: size * 1.16 }}>
-      <View style={{ position: "absolute", right: -size * .07, top: size * .1, transform: [{ rotate: "10deg" }] }}><ClothingItem item={photos.lower} size={size * .98} /></View>
-      <View style={{ position: "absolute", left: -size * .09, top: 0, transform: [{ rotate: "-8deg" }] }}><ClothingItem item={upper} size={size} /></View>
-      {advice.pieces.outer && <View style={{ position: "absolute", left: size * .04, bottom: size * .03, transform: [{ rotate: "-7deg" }] }}><ClothingItem item={photos.top} size={size * .56} /></View>}
-      <View style={{ position: "absolute", right: -size * .02, bottom: 0, transform: [{ rotate: "-10deg" }] }}><ClothingItem item={photos.shoes} size={size * .58} /></View>
-      {accessories.map((photo, index) => <View key={`${photo}:${index}`} style={{ position: "absolute", right: index ? -size * .02 : size * .03, top: index ? size * .36 : -size * .02, transform: [{ rotate: index ? "12deg" : "-8deg" }] }}><ClothingItem item={photo} size={size * .3} /></View>)}
+    <View style={{ width: size, height: size * .9 }}>
+      {backdrop && <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" viewBox="0 0 100 90" preserveAspectRatio="none"><Defs><RadialGradient id={`${id}linen`} cx="50%" cy="50%" rx="50%" ry="50%"><Stop offset="0%" stopColor={theme.dark ? "#b2b9ac" : "#e9e0ce"} stopOpacity={theme.dark ? .42 : .48} /><Stop offset="100%" stopColor={theme.page} stopOpacity={0} /></RadialGradient></Defs><Ellipse cx={50} cy={45} rx={50} ry={44} fill={`url(#${id}linen)`} /></Svg>}
+      <View style={{ position: "absolute", left: size * .07, top: size * .08, transform: [{ rotate: "-12deg" }] }}><ClothingItem item={upper} size={size * .66} /></View>
+      {advice.pieces.outer && <View style={{ position: "absolute", right: size * .06, top: size * .24, transform: [{ rotate: "9deg" }] }}><ClothingItem item={photos.top} size={size * .49} /></View>}
+      <View style={{ position: "absolute", right: size * .06, bottom: size * .06, transform: [{ rotate: "13deg" }] }}><ClothingItem item={photos.lower} size={size * .5} /></View>
+      <View style={{ position: "absolute", left: size * .065, bottom: size * .065, transform: [{ rotate: "-12deg" }] }}><ClothingItem item={photos.shoes} size={size * .45} /></View>
+      {accessories.map((photo, index) => <View key={`${photo}:${index}`} style={{ position: "absolute", right: size * (.05 + index * .19), top: size * .13, transform: [{ rotate: index % 2 ? "-10deg" : "8deg" }] }}><ClothingItem item={photo} size={size * .22} /></View>)}
     </View>
   </View>;
 }

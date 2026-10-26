@@ -119,7 +119,7 @@ export function OutfitPhoto({ source, visual, fullVisual, editorial = false, hei
 const styles = StyleSheet.create({
   editorial: { backgroundColor: "transparent", borderRadius: 0 },
   editorialModel: { position: "absolute", right: 0, top: 6, width: "62%", height: "98%" },
-  editorialBadge: { top: 3, bottom: undefined, right: 0, backgroundColor: "transparent", borderRadius: 0, paddingVertical: 7, paddingHorizontal: 2 },
+  editorialBadge: { top: 3, bottom: "auto", right: 0, backgroundColor: "transparent", borderRadius: 0, paddingVertical: 7, paddingHorizontal: 2 },
   badgeText: { fontSize: 11, lineHeight: 16, color: "#21483e" },
   screen: { flex: 1, backgroundColor: "#142d31" },
   header: { paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },

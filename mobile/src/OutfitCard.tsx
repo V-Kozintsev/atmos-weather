@@ -1,7 +1,7 @@
 import { useTimeTheme, type TimeTheme } from "./timeTheme";
 import { useState } from "react";
 import { Pressable, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent, type PressableStateCallbackType, type StyleProp, type ViewStyle } from "react-native";
-import { Text } from "./typography";
+import { Text, fontNames } from "./typography";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import type { OutfitAdvice, OutfitOccasion } from "../../src/lib/outfit";
 import { OutfitPreview } from "./OutfitPreview";
@@ -15,7 +15,7 @@ export function OutfitCard({ advice, gender, occasion, period, evening, eveningT
   const styles = createStyles(theme);
   const [width, setWidth] = useState(350);
   const { fontScale } = useWindowDimensions();
-  const stacked = width < 300 || fontScale > 1.3;
+  const stacked = width < 270 || fontScale > 1.3;
   const artworkSize = Math.min(compact ? 142 : 154, Math.max(130, width * .44));
   const title = advice.rain ? advice.feels <= 0 ? "Защита от снега" : "На случай дождя" : ["heat", "warm"].includes(advice.style) ? "Сегодня налегке" : advice.style === "mild" ? "Лёгкий слой" : "Тёплые слои";
   /** @param {LayoutChangeEvent} event - Фактическая ширина карточки внутри колонки. @returns {void} Перестраивает композицию при узкой карточке, сохраняя читаемость текста. */
@@ -30,7 +30,7 @@ export function OutfitCard({ advice, gender, occasion, period, evening, eveningT
         <Text style={styles.description}>{description || outfitCardSummary(advice)}</Text>
         <View style={styles.cta}><Text style={styles.ctaText}>Смотреть образ</Text><Ionicons name="arrow-forward-outline" size={19} color={theme.accent} style={{ transform: [{ rotate: "-45deg" }] }} /></View>
       </View>
-      <View pointerEvents="none" style={[styles.artwork, { width: artworkSize, height: artworkSize * 1.16 }, stacked && styles.artworkStacked]}>
+      <View pointerEvents="none" style={[styles.artwork, { width: artworkSize, height: artworkSize * .98 }, stacked && styles.artworkStacked]}>
         <OutfitPreview advice={advice} gender={gender} occasion={occasion} size={artworkSize} />
       </View>
     </View>
@@ -46,7 +46,7 @@ const createStyles = (theme: TimeTheme) => StyleSheet.create({
   stacked: { flexDirection: "column", alignItems: "stretch", gap: 8 },
   copy: { flex: 1, minWidth: 0, gap: 7, zIndex: 1 },
   eyebrow: { fontSize: 9, lineHeight: 14, letterSpacing: 1.1, fontWeight: "700", color: theme.primary },
-  title: { fontSize: 26, lineHeight: 31, fontWeight: "700", color: theme.primary, letterSpacing: -.7 },
+  title: { fontFamily: fontNames.heading, fontSize: 26, lineHeight: 31, fontWeight: "700", color: theme.primary, letterSpacing: -.7 },
   description: { fontSize: 14, lineHeight: 21, color: theme.muted },
   cta: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 32, marginTop: 9 },
   ctaText: { fontSize: 14, lineHeight: 21, fontWeight: "500", color: theme.accent, textDecorationLine: "underline" },

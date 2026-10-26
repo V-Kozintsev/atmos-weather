@@ -347,8 +347,8 @@ function Atmos(): React.JSX.Element {
         )}
         {tab === "weather" && forecast && <WeatherHome forecast={forecast} advice={advice} gender={preferences.gender} occasion={preferences.occasion} period={period} eveningHour={eveningHour} eveningHint={eveningHint} fahrenheit={preferences.fahrenheit} background={preferences.cityBackground} sceneMode={preferences.sceneMode} photo={cityPhoto} stale={stale} favorite={favorite} dayIndex={dayIndex} hours={selectedHours} wide={wide} onFavorite={toggleFavorite} onOutfit={() => setTab("outfit")} onDay={setDayIndex} onShare={() => void share()} onRefresh={refresh} refreshing={loading} onSource={(url) => void openLink(url)} />}
         {tab === "outfit" && advice && forecast && (
-          <OutfitScreen forecast={forecast} advice={advice} period={period} gender={preferences.gender} occasion={preferences.occasion} warmth={preferences.warmth} fahrenheit={preferences.fahrenheit} eveningHour={eveningHour} eveningHint={eveningHint} onPeriodChange={setPeriod} onGenderChange={(gender) => update({ gender })}>
-            {(settingsVisible) => <OutfitCustomization settingsVisible={settingsVisible} advice={advice} gender={preferences.gender} occasion={preferences.occasion} warmth={preferences.warmth} onOccasionChange={(occasion) => update({ occasion })} onWarmthChange={(warmth) => update({ warmth })} onOpen={openLink} />}
+          <OutfitScreen forecast={forecast} advice={advice} period={period} gender={preferences.gender} occasion={preferences.occasion} fahrenheit={preferences.fahrenheit} eveningHour={eveningHour} eveningHint={eveningHint} onPeriodChange={setPeriod} onGenderChange={(gender) => update({ gender })}>
+            <OutfitCustomization advice={advice} gender={preferences.gender} occasion={preferences.occasion} warmth={preferences.warmth} onOccasionChange={(occasion) => update({ occasion })} onWarmthChange={(warmth) => update({ warmth })} onOpen={openLink} />
           </OutfitScreen>
         )}
         {tab === "settings" && <SettingsScreen
