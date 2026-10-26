@@ -471,7 +471,7 @@ function Atmos(): React.JSX.Element {
                   accessibilityRole="button"
                   accessibilityState={{ selected: dayIndex === index }}
                   onPress={() => setDayIndex(index)}
-                  style={[s.day, dayIndex === index && s.navSelected]}
+                  style={[s.day, dayIndex === index && s.daySelected]}
                 >
                   <Text style={s.dayName}>
                     {index === 0 ? "Сегодня" : weekday(day.date)}
@@ -614,14 +614,15 @@ function Atmos(): React.JSX.Element {
             style={[s.navItem, compactWeather && s.navItemCompact]}
             onPress={() => setTab(value)}
           >
-            <View style={[s.navIcon, tab === value && s.navSelected]}>
+            <View style={s.navIcon}>
               <Ionicons
                 name={glyph}
                 size={25}
-                color={tab === value ? "#21483e" : "#737c74"}
+                color={tab === value ? "#21483e" : "#88938a"}
               />
             </View>
-            <Text style={s.navLabel}>{label}</Text>
+            <Text style={[s.navLabel, tab === value && s.navLabelSelected]}>{label}</Text>
+            <View style={[s.navIndicator, tab === value && s.navIndicatorSelected]} />
           </Pressable>
         ))}
       </View>
