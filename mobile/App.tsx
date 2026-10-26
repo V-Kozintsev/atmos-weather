@@ -484,10 +484,10 @@ function Atmos(): React.JSX.Element {
               <Ionicons
                 name={glyph}
                 size={25}
-                color={tab === value ? theme.primary : theme.muted}
+                color={tab === value ? theme.accent : theme.muted}
               />
             </View>
-            <Text style={[s.navLabel, tab === value && s.navLabelSelected, { color: tab === value ? theme.primary : theme.muted }]}>{label}</Text>
+            <Text style={[s.navLabel, tab === value && s.navLabelSelected, { color: tab === value ? theme.accent : theme.muted }]}>{label}</Text>
             <View style={[s.navIndicator, tab === value && s.navIndicatorSelected, tab === value && { backgroundColor: theme.accent }]} />
           </Pressable>
         ))}

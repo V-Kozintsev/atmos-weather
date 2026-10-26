@@ -28,7 +28,7 @@ export function OutfitCard({ advice, gender, occasion, period, evening, eveningT
         <Text style={styles.eyebrow}>{period === "day" ? "ОБРАЗ НА ВЕСЬ ДЕНЬ" : "ЧТО НАДЕТЬ СЕГОДНЯ"}</Text>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.description}>{description || outfitCardSummary(advice)}</Text>
-        <View style={styles.cta}><Text style={styles.ctaText}>Смотреть образ</Text><Ionicons name="arrow-forward-outline" size={19} color={theme.primary} style={{ transform: [{ rotate: "-45deg" }] }} /></View>
+        <View style={styles.cta}><Text style={styles.ctaText}>Смотреть образ</Text><Ionicons name="arrow-forward-outline" size={19} color={theme.accent} style={{ transform: [{ rotate: "-45deg" }] }} /></View>
       </View>
       <View pointerEvents="none" style={[styles.artwork, { width: artworkSize, height: artworkSize * 1.16 }, stacked && styles.artworkStacked]}>
         <OutfitPreview advice={advice} gender={gender} occasion={occasion} size={artworkSize} />
@@ -49,7 +49,7 @@ const createStyles = (theme: TimeTheme) => StyleSheet.create({
   title: { fontSize: 26, lineHeight: 31, fontWeight: "700", color: theme.primary, letterSpacing: -.7 },
   description: { fontSize: 14, lineHeight: 21, color: theme.muted },
   cta: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 32, marginTop: 9 },
-  ctaText: { fontSize: 14, lineHeight: 21, fontWeight: "500", color: theme.primary, textDecorationLine: "underline" },
+  ctaText: { fontSize: 14, lineHeight: 21, fontWeight: "500", color: theme.accent, textDecorationLine: "underline" },
   artwork: { alignSelf: "center", alignItems: "center", justifyContent: "center" },
   artworkStacked: { alignSelf: "center" },
   footer: { borderTopWidth: 1, borderBottomWidth: 1, borderColor: theme.divider, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 10, minHeight: 47 },

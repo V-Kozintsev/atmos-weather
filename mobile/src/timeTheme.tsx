@@ -15,10 +15,10 @@ export interface TimeTheme {
 
 export const baseTheme: TimeTheme = { page: "#f7f8f2", primary: "#21483e", text: "#42594a", muted: "#627265", divider: "#d1d8cb", accent: "#547667", dark: false };
 export const timeThemes: Record<Exclude<SceneMode, "auto">, TimeTheme> = {
-  morning: { page: "#f2e8db", primary: "#35483f", text: "#4e594e", muted: "#68685b", divider: "#d4c7b6", accent: "#576d56", dark: false },
-  day: { page: "#e8eee3", primary: "#21483e", text: "#42594a", muted: "#5e6e60", divider: "#c5d1bf", accent: "#547667", dark: false },
-  evening: { page: "#e8e2ec", primary: "#3d3e56", text: "#555469", muted: "#686176", divider: "#c9bfd2", accent: "#716083", dark: false },
-  night: { page: "#192d33", primary: "#edf3e8", text: "#d0ded6", muted: "#a6bbb4", divider: "#435b60", accent: "#b5d1bb", dark: true },
+  morning: { page: "#f4ede4", primary: "#292824", text: "#3f3c36", muted: "#59554d", divider: "#d4c7b6", accent: "#345b49", dark: false },
+  day: { page: "#eef1eb", primary: "#242b29", text: "#38413e", muted: "#505c56", divider: "#c5d1bf", accent: "#285a45", dark: false },
+  evening: { page: "#ece7ef", primary: "#2b2832", text: "#403b49", muted: "#595160", divider: "#c9bfd2", accent: "#60506f", dark: false },
+  night: { page: "#1d2931", primary: "#f5f5f2", text: "#e0e3e6", muted: "#bdc6cf", divider: "#495760", accent: "#b9d8ca", dark: true },
 };
 
 export const TimeThemeContext = createContext(baseTheme);

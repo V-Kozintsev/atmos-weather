@@ -13,7 +13,7 @@ export function UnderlineTabs<T extends string>({ label, choices, value, onChang
   return <View accessibilityRole="radiogroup" accessibilityLabel={label} style={styles.row}>
     {choices.map((choice) => <Pressable key={choice.value} accessibilityRole="radio" accessibilityLabel={choice.label} accessibilityState={{ checked: choice.value === value }} onPress={() => onChange(choice.value)} style={[styles.option, { flex: choice.weight || 1 }]}>
       <View style={[styles.content, choice.icon && fontScale > 1.25 && styles.iconAbove, choice.value === value && styles.selected]}>
-        {choice.icon && <Ionicons name={choice.icon} size={20} color={choice.value === value ? theme.primary : theme.muted} />}
+        {choice.icon && <Ionicons name={choice.icon} size={20} color={choice.value === value ? theme.accent : theme.muted} />}
         <Text style={[styles.label, choice.value === value && styles.selectedLabel]}>{choice.label}</Text>
       </View>
     </Pressable>)}
@@ -25,8 +25,8 @@ const createStyles = (theme: TimeTheme) => StyleSheet.create({
   row: { flexDirection: "row", alignItems: "stretch", gap: 8 },
   option: { minHeight: 44, alignItems: "center", justifyContent: "center", minWidth: 0 },
   content: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderBottomWidth: 2, borderBottomColor: "transparent", paddingVertical: 10, minWidth: 0, maxWidth: "100%" },
-  selected: { borderBottomColor: theme.primary },
+  selected: { borderBottomColor: theme.accent },
   iconAbove: { flexDirection: "column" },
   label: { fontSize: 12, lineHeight: 18, color: theme.muted, flexShrink: 1, textAlign: "center" },
-  selectedLabel: { color: theme.primary, fontWeight: "600" },
+  selectedLabel: { color: theme.accent, fontWeight: "600" },
 });
