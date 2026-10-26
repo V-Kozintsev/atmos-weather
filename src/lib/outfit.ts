@@ -1,4 +1,4 @@
-import type { Day, Hour } from "./weather";
+import { windSpeed, type Day, type Hour } from "./weather";
 
 export type OutfitStyle = "heat" | "warm" | "mild" | "cool" | "cold" | "frost";
 export type OutfitOccasion = "casual" | "office" | "sport";
@@ -129,7 +129,7 @@ export function outfitForHour(hour: Hour, preferences: OutfitPreferences = defau
   const rain = hour.rain >= 0.3 || hasPrecipitation(hour.code);
   const reasons = [`${Math.round(hour.feels)}° по ощущениям`];
   if (rain) reasons.push("возможны осадки");
-  if (hour.wind >= 25) reasons.push(`ветер ${Math.round(hour.wind)} км/ч`);
+  if (hour.wind >= 25) reasons.push(`ветер ${windSpeed(hour.wind)} м/с`);
   return buildOutfit(hour.feels, hour.wind, rain, `${reasons.join(", ")}.`, preferences);
 }
 
@@ -143,7 +143,7 @@ export function outfitForDay(day: Day, hours: Hour[], fallback: Hour, preference
   const rain = day.rain >= 0.5 || span.some((hour) => hour.rain >= 0.3 || hasPrecipitation(hour.code));
   const reasons = [min === max ? `${Math.round(min)}° по ощущениям` : `от ${Math.round(min)}° до ${Math.round(max)}° по ощущениям`];
   if (rain) reasons.push("возможны осадки");
-  if (wind >= 25) reasons.push(`ветер до ${Math.round(wind)} км/ч`);
+  if (wind >= 25) reasons.push(`ветер до ${windSpeed(wind)} м/с`);
   const layers = max - min >= 9 && max >= 20 && min < 15;
   const advice = buildOutfit(min, wind, rain, `${reasons.join(", ")}.${layers ? " Верхний слой можно снять при потеплении." : ""}`, preferences);
   if (layers) advice.title = "Одевайтесь слоями";

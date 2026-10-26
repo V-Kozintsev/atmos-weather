@@ -153,3 +153,8 @@ export function isCity(value: unknown): value is City {
     Math.abs(c.longitude) <= 180
   );
 }
+
+/** @param {number} kilometersPerHour - Скорость из общего прогноза в км/ч. @returns {string} Скорость в м/с с десятичной запятой и точностью до десятых. */
+export function windSpeed(kilometersPerHour: number): string {
+  return (Math.round(kilometersPerHour / 3.6 * 10) / 10).toFixed(1).replace(/\.0$/, "").replace(".", ",");
+}

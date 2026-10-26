@@ -15,6 +15,7 @@ import {
   isCity,
   temperature,
   weekday,
+  windSpeed,
   type City,
 } from "../src/lib/weather";
 import {
@@ -431,7 +432,7 @@ function Atmos(): React.JSX.Element {
                 {degrees(forecast.days[0].max)}
               </Text>
               <Text style={s.heroText}>
-                Ветер {Math.round(forecast.current.wind)} км/ч · Влажность{" "}
+                Ветер {windSpeed(forecast.current.wind)} м/с · Влажность{" "}
                 {forecast.current.humidity}%
               </Text>
             </View>
@@ -496,7 +497,7 @@ function Atmos(): React.JSX.Element {
               </Text>
               <Text style={s.text}>
                 {walk
-                  ? `${degrees(walk.feels)} по ощущениям, ветер ${Math.round(walk.wind)} км/ч. Выбран дневной час без сильного ветра и существенных осадков.`
+                  ? `${degrees(walk.feels)} по ощущениям, ветер ${windSpeed(walk.wind)} м/с. Выбран дневной час без сильного ветра и существенных осадков.`
                   : "В ближайшие часы нет комфортного дневного периода по нашим правилам."}
               </Text>
             </View>
