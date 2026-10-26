@@ -52,9 +52,9 @@ export function CityBackdrop({ forecast, mode, photo, seamless = false, photosEn
   const key = cityPhotoKey(forecast.city);
   const sky = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 300" preserveAspectRatio="none"><defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="${top}"/><stop offset="1" stop-color="${bottom}"/></linearGradient></defs><path fill="url(#sky)" d="M0 0h680v300H0Z"/>${phase === "night" ? '<g fill="#fff" opacity=".4"><circle cx="430" cy="50" r="1.5"/><circle cx="580" cy="24" r="1"/><circle cx="640" cy="89" r="1.5"/><circle cx="355" cy="28" r="1"/></g>' : ''}<path d="M0 250Q150 216 310 253T680 230v70H0Z" fill="#183b42" opacity=".22"/></svg>`;
   return (
-    <View pointerEvents="none" accessible={false} style={StyleSheet.absoluteFill}>
+    <View pointerEvents="none" accessible={false} style={[StyleSheet.absoluteFill, { overflow: "hidden" }]}>
       <SvgXml xml={sky} width="100%" height="100%" />
-      {photosEnabled && (key || photo) && <Image source={key ? photos[key] : { uri: photo!.uri }} resizeMode="cover" fadeDuration={0} style={[StyleSheet.absoluteFill, { opacity: seamless ? 1 : .75 }]} />}
+      {photosEnabled && (key || photo) && <Image source={key ? photos[key] : { uri: photo!.uri }} resizeMode="cover" fadeDuration={0} style={[StyleSheet.absoluteFill, { width: "100%", height: "100%", opacity: seamless ? 1 : .75 }]} />}
       <View style={[StyleSheet.absoluteFill, { backgroundColor: seamless ? phase === "night" ? "rgba(8,20,38,.35)" : "rgba(14,35,42,.12)" : overlay }]} />
       {seamless && <>
         <SvgXml xml={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><defs><linearGradient id="${gradientId}scrim"><stop stop-color="#142d35" stop-opacity=".56"/><stop offset=".65" stop-color="#142d35" stop-opacity=".12"/><stop offset="1" stop-color="#142d35" stop-opacity="0"/></linearGradient></defs><path d="M0 0h100v100H0Z" fill="url(#${gradientId}scrim)"/></svg>`} width="100%" height="100%" style={StyleSheet.absoluteFill} />

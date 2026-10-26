@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   forecastColumn: { paddingTop: 14 },
   forecastWide: { flex: 1, width: "auto", paddingTop: 28 },
   inset: { paddingHorizontal: 18 },
-  hero: { position: "relative", paddingTop: 12 },
+  hero: { position: "relative", paddingTop: 12, overflow: "hidden" },
   heroDense: { paddingTop: 6 },
   heroContent: { paddingHorizontal: 18, paddingTop: 15, paddingBottom: 53 },
   heroContentDense: { paddingTop: 12, paddingBottom: 45 },
