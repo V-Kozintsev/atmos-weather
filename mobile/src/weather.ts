@@ -68,12 +68,27 @@ function validSnapshot(value: unknown, city: City): value is Forecast {
   );
 }
 
-/** @param {City} city - Город снимка. @returns {Promise<Forecast | undefined>} Проверенный локальный прогноз. */
+/** @param {City} city - Выбранный город. @returns {Forecast | undefined} Последний пригодный прогноз без обращения к диску или сети. */
+export function memoryForecast(city: City): Forecast | undefined {
+  const value = cache.get(key(city));
+  return value && validSnapshot(value.forecast, city) ? value.forecast : undefined;
+}
+
+/** @param {City} city - Выбранный город. @returns {boolean} Сохранённый срок свежести прогноза ещё не истёк. */
+export function isForecastFresh(city: City): boolean {
+  return !!memoryForecast(city) && (cache.get(key(city))?.expires || 0) > Date.now();
+}
+
+/** @param {City} city - Город снимка. @returns {Promise<Forecast | undefined>} Проверенный прогноз и восстановленный срок свежести источника. */
 export async function savedForecast(city: City): Promise<Forecast | undefined> {
+  const memory = memoryForecast(city);
+  if (memory) return memory;
   const snapshot = await read<unknown>(key(city), null);
   try {
     if (!validSnapshot(snapshot, city)) return undefined;
     new Intl.DateTimeFormat("ru-RU", { timeZone: snapshot.timezone });
+    const savedExpiry = (snapshot as Forecast & { expiresAt?: number }).expiresAt;
+    cache.set(key(city), { forecast: snapshot, expires: Number.isFinite(savedExpiry) ? savedExpiry! : snapshot.fetchedAt + 600000 });
     return snapshot;
   } catch {
     return undefined;
@@ -87,7 +102,7 @@ export async function loadForecast(
 ): Promise<Forecast> {
   const cached = cache.get(key(city));
   if (signal.aborted) throw new Error("Aborted");
-  if (cached && cached.expires > Date.now()) {
+  if (cached && isForecastFresh(city)) {
     log("cache hit");
     return cached.forecast;
   }
@@ -117,14 +132,10 @@ export async function loadForecast(
     );
     if (signal.aborted || controller.signal.aborted) throw new Error("Aborted");
     const expiry = Date.parse(response.headers.get("Expires") || "");
-    cache.set(key(city), {
-      forecast,
-      expires:
-        Number.isFinite(expiry) && expiry > Date.now()
-          ? expiry
-          : Date.now() + 600000,
-    });
-    await write(key(city), forecast);
+    const expiresAt = Number.isFinite(expiry) && expiry > Date.now() ? expiry : Date.now() + 600000;
+    cache.set(key(city), { forecast, expires: expiresAt });
+    if (cache.size > 20) cache.delete(cache.keys().next().value!);
+    void write(key(city), { ...forecast, expiresAt });
     log("ready", { status: response.status });
     return forecast;
   } catch (error) {

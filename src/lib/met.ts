@@ -33,17 +33,25 @@ interface MetPoint {
 export interface MetResponse {
   properties?: { timeseries?: MetPoint[] };
 }
+const timeFormatters = new Map<string, Intl.DateTimeFormat>();
+
 /** @param {Date} date - Время UTC. @param {string} timezone - Часовой пояс города. @returns {string} Локальные дата и время. */
 function localTime(date: Date, timezone: string): string {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(date);
+  let formatter = timeFormatters.get(timezone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-GB", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    });
+    timeFormatters.set(timezone, formatter);
+    if (timeFormatters.size > 16) timeFormatters.delete(timeFormatters.keys().next().value!);
+  }
+  const parts = formatter.formatToParts(date);
   const value = (type: string): string =>
     parts.find((part) => part.type === type)?.value || "00";
   return `${value("year")}-${value("month")}-${value("day")}T${value("hour")}:${value("minute")}`;
@@ -141,9 +149,7 @@ export function parseMetForecast(city: City, data: MetResponse): Forecast {
     if (!dayHours.length) throw new Error("Incomplete forecast");
     const daytime = dayHours.find((hour) => hour.day) ?? dayHours[0];
     const uvValues = points
-      .filter((point) =>
-        localTime(new Date(point.time), timezone).startsWith(date),
-      )
+      .filter((_point, index) => hours[index].time.startsWith(date))
       .map((point) => point.data.instant.details.ultraviolet_index_clear_sky)
       .filter((value): value is number => Number.isFinite(value));
     return {

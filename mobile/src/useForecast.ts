@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AppState } from "react-native";
 import type { City, Forecast } from "../../src/lib/weather";
-import { loadForecast, savedForecast, log } from "./weather";
+import { loadForecast, savedForecast, memoryForecast, isForecastFresh, log } from "./weather";
 
 /** @param {City | undefined} city - Восстановленный город пользователя. @returns {object} Прогноз, состояние сети и обновление с защитой от устаревших ответов. */
 export function useForecast(city: City | undefined) {
@@ -28,26 +28,31 @@ export function useForecast(city: City | undefined) {
   useEffect(() => {
     if (!city) return;
     const controller = new AbortController();
-    setForecast(undefined);
+    const memory = memoryForecast(city);
+    setForecast(memory);
     setLoading(true);
     setError("");
-    setStale(false);
+    setStale(!!memory && !isForecastFresh(city));
     /** @returns {Promise<void>} Загружает снимок и сеть; отменённые запросы не меняют интерфейс. */
     async function load(): Promise<void> {
-      const snapshot = await savedForecast(city!);
+      const startedAt = Date.now();
+      const snapshot = memory || await savedForecast(city!);
       if (controller.signal.aborted) return;
       if (snapshot) {
+        log("forecast restored", { elapsedMs: Date.now() - startedAt, fresh: isForecastFresh(city!) });
         setForecast(snapshot);
-        setStale(true);
+        setStale(!isForecastFresh(city!));
       }
       try {
         const next = await loadForecast(city!, controller.signal);
         if (!controller.signal.aborted) {
+          log("forecast displayed", { elapsedMs: Date.now() - startedAt });
           setForecast(next);
           setStale(false);
         }
       } catch {
         if (!controller.signal.aborted) {
+          setStale(!!snapshot);
           setError(
             snapshot
               ? "Нет связи. Показываем сохранённый прогноз."
