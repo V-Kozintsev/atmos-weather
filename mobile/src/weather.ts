@@ -8,6 +8,12 @@ import { read, write } from "./storage";
 const cache = new Map<string, { forecast: Forecast; expires: number }>();
 let diagnostics = false;
 
+/** @param {City} a - Первый город. @param {City} b - Второй город. @returns {boolean} Совпадение места с учётом небольшой разницы координат справочников. */
+export function sameCity(a: City, b: City): boolean {
+  return a.latitude === b.latitude && a.longitude === b.longitude
+    || a.name === b.name && a.country === b.country && Math.abs(a.latitude - b.latitude) < .05 && Math.abs(a.longitude - b.longitude) < .05;
+}
+
 /** @param {boolean} enabled - Явное включение безопасной диагностики. @returns {void} Меняет режим логирования. */
 export function setDiagnostics(enabled: boolean): void {
   diagnostics = enabled;

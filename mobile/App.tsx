@@ -2,7 +2,7 @@ import { TimeThemeContext, timeThemes, useSceneTheme } from "./src/timeTheme";
 import { useEffect, useState } from "react";
 import { useFonts } from "expo-font";
 import { fontAssets } from "./src/typography";
-import { ActivityIndicator, BackHandler, Linking, Modal, Platform, Pressable, RefreshControl, ScrollView, Share, TextInput, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, BackHandler, Linking, Platform, Pressable, RefreshControl, ScrollView, Share, View, useWindowDimensions } from "react-native";
 import { Text } from "./src/typography";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -21,10 +21,12 @@ import {
 } from "../src/lib/outfit";
 import { useForecast } from "./src/useForecast";
 import { read, write } from "./src/storage";
-import { searchCities, setDiagnostics, log } from "./src/weather";
+import { sameCity, setDiagnostics, log } from "./src/weather";
 import { Chip, s } from "./src/ui";
 import { WeatherHome } from "./src/WeatherHome";
 import { OutfitScreen } from "./src/OutfitScreen";
+import { CitySearch } from "./src/CitySearch";
+import { ForecastLoading } from "./src/ForecastLoading";
 import { SettingsScreen } from "./src/SettingsScreen";
 import { OutfitCustomization } from "./src/OutfitCustomization";
 import { pinWidget, syncWidgets } from "./src/widget";
@@ -81,7 +83,6 @@ function Atmos(): React.JSX.Element {
   const [period, setPeriod] = useState<"hour" | "day">("hour");
   const [dayIndex, setDayIndex] = useState(0);
   const [searchVisible, setSearchVisible] = useState(false);
-  const [query, setQuery] = useState("");
   const [locating, setLocating] = useState(false);
   const [notice, setNotice] = useState("");
   const { forecast, loading, stale, error, refresh } = useForecast(city);
@@ -180,7 +181,6 @@ function Atmos(): React.JSX.Element {
     setCity(next);
     setDayIndex(0);
     setSearchVisible(false);
-    setQuery("");
     setNotice("");
   }
   /** @param {Partial<Preferences>} change - Изменение настроек. @returns {void} Применяет и сохраняет выбор. */
@@ -220,23 +220,14 @@ function Atmos(): React.JSX.Element {
       setLocating(false);
     }
   }
-  /** @returns {void} Добавляет или удаляет выбранный город из избранного. */
-  function toggleFavorite(): void {
-    if (!city) return;
-    setFavorites((values) =>
-      values.some(
-        (value) =>
-          value.latitude === city.latitude &&
-          value.longitude === city.longitude,
-      )
-        ? values.filter(
-            (value) =>
-              value.latitude !== city.latitude ||
-              value.longitude !== city.longitude,
-          )
-        : [...values, city].slice(-20),
-    );
+  /** @param {City} value - Город в поиске или прогнозе. @returns {void} Меняет избранное по координатам, не переключая выбранный прогноз. */
+  function toggleCityFavorite(value: City): void {
+    setFavorites((values) => values.some((item) => sameCity(item, value))
+      ? values.filter((item) => !sameCity(item, value))
+      : [...values, value].slice(-20));
   }
+  /** @returns {void} Меняет избранное для выбранного города. */
+  function toggleFavorite(): void { if (city) toggleCityFavorite(city); }
   /** @param {string} url - HTTPS-ссылка. @returns {Promise<void>} Открывает внешний ресурс без потери экрана приложения. */
   async function openLink(url: string): Promise<void> {
     try {
@@ -287,17 +278,8 @@ function Atmos(): React.JSX.Element {
         : `На вечер — ${eveningOutfit.pieces.upper.toLocaleLowerCase("ru")}`;
   const favorite = favorites.some(
     (value) =>
-      value.latitude === city?.latitude && value.longitude === city?.longitude,
+      !!city && sameCity(value, city),
   );
-  const matches =
-    query.trim().length >= 2
-      ? searchCities(query)
-      : [
-          ...favorites,
-          ...CITIES.filter(
-            (value) => !favorites.some((f) => f.id === value.id),
-          ),
-        ];
 
   return (
     <TimeThemeContext.Provider value={theme}><SafeAreaView style={[s.safe, { backgroundColor: theme.page }]} edges={["top", "left", "right", "bottom"]}>
@@ -348,18 +330,7 @@ function Atmos(): React.JSX.Element {
             <Chip label="Повторить" onPress={refresh} />
           </View>
         ) : null}
-        {tab !== "settings" && !forecast && (
-          <View style={s.card}>
-            {loading || !hydrated ? (
-              <ActivityIndicator color="#21483e" size="large" />
-            ) : null}
-            <Text style={s.text}>
-              {loading || !hydrated
-                ? "Собираем свежий прогноз…"
-                : "Выберите город или повторите загрузку."}
-            </Text>
-          </View>
-        )}
+        {tab !== "settings" && !forecast && <ForecastLoading pending={loading || !hydrated} />}
         {tab === "weather" && forecast && <WeatherHome forecast={forecast} advice={advice} gender={preferences.gender} occasion={preferences.occasion} period={period} eveningHour={eveningHour} eveningHint={eveningHint} fahrenheit={preferences.fahrenheit} background={preferences.cityBackground} sceneMode={preferences.sceneMode} photo={cityPhoto} stale={stale} favorite={favorite} dayIndex={dayIndex} hours={selectedHours} wide={wide} onFavorite={toggleFavorite} onOutfit={() => setTab("outfit")} onDay={setDayIndex} onShare={() => void share()} onRefresh={refresh} refreshing={loading} onSource={(url) => void openLink(url)} />}
         {tab === "outfit" && advice && forecast && (
           <OutfitScreen forecast={forecast} advice={advice} period={period} gender={preferences.gender} occasion={preferences.occasion} fahrenheit={preferences.fahrenheit} eveningHour={eveningHour} eveningHint={eveningHint} onPeriodChange={setPeriod} onGenderChange={(gender) => update({ gender })}>
@@ -479,55 +450,7 @@ function Atmos(): React.JSX.Element {
           </Pressable>
         ))}
       </View>
-      <Modal
-        visible={searchVisible}
-        animationType="slide"
-        onRequestClose={() => setSearchVisible(false)}
-      >
-        <SafeAreaView style={s.safe}>
-          <View style={[s.header, wide && s.bodyWide]}>
-            <Text style={s.title}>Выбрать город</Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Закрыть поиск"
-              style={s.iconButton}
-              onPress={() => setSearchVisible(false)}
-            >
-              <Ionicons name="close" size={28} color="#21483e" />
-            </Pressable>
-          </View>
-          <TextInput
-            autoFocus
-            placeholder="Название города"
-            accessibilityLabel="Название города"
-            value={query}
-            onChangeText={setQuery}
-            style={s.input}
-            autoCorrect={false}
-          />
-          <ScrollView
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={[s.body, tab === "weather" && wide && s.bodyWide]}
-          >
-            {matches.map((value) => (
-              <Pressable
-                key={value.id}
-                accessibilityRole="button"
-                onPress={() => chooseCity(value)}
-                style={s.card}
-              >
-                <Text style={s.subtitle}>{value.name}</Text>
-                <Text style={s.caption}>{value.country}</Text>
-              </Pressable>
-            ))}
-            {query.length >= 2 && !matches.length && (
-              <Text style={s.text}>
-                Не нашли город. Попробуйте другое написание.
-              </Text>
-            )}
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
+      <CitySearch visible={searchVisible} favorites={favorites} locating={locating} notice={notice} onClose={() => setSearchVisible(false)} onChoose={chooseCity} onFavorite={toggleCityFavorite} onLocate={() => { if (!locating) void locate(); }} />
     </SafeAreaView></TimeThemeContext.Provider>
   );
 }
