@@ -75,7 +75,7 @@ export function AtmosWidget({ forecast, preferences, offline = false, mode = "we
   const ink = foreground;
   const compact = height < 170;
   const narrow = width < 270;
-  const cardHeight = Math.max(120, Math.min(height, 220));
+  const cardHeight = Math.max(120, Math.min(height, 204));
   const pad = height < 210 ? 10 : 14;
   const symbolSize = compact ? 42 : height < 210 ? 52 : 68;
   const daylight = period !== "night";
@@ -92,7 +92,7 @@ export function AtmosWidget({ forecast, preferences, offline = false, mode = "we
   return <OverlapWidget clickAction="OPEN_APP" accessibilityLabel={`${appName}. Нажмите погоду, чтобы открыть приложение.`} style={{ width: "match_parent", height: cardHeight, borderRadius: 24, overflow: "hidden", backgroundColor: dark ? "#142d3c" : "#e2eeec" }}>
     {backdrop && !unsettled && <ImageWidget image={backdrop} imageWidth={width} imageHeight={cardHeight} resizeMode="stretch" style={{ width: "match_parent", height: "match_parent" }} />}
     {!unsettled && <FlexWidget style={{ width: "match_parent", height: "match_parent", backgroundGradient: { from: dark ? "#142d3c20" : "#edf4f120", to: dark ? "#14202f" : "#faf5ec", orientation: "TOP_BOTTOM" } }} />}
-    <FlexWidget style={{ width: "match_parent", height: "match_parent", padding: pad, borderRadius: 24, borderWidth: 1, borderColor: dark ? "#8b8baf" : "#f4f5e9", justifyContent: "space-between", ...(unsettled ? { backgroundGradient: { from: preferences.widgetAutoTheme !== false ? sceneColors[0] : dark ? "#263343" : "#dce8e9", to: preferences.widgetAutoTheme !== false ? sceneColors[1] : dark ? "#3e445b" : "#b9d1da", orientation: "TL_BR" as const } } : {}) }}>
+    <FlexWidget style={{ width: "match_parent", height: "match_parent", padding: pad, paddingBottom: 4, borderRadius: 24, borderWidth: 1, borderColor: dark ? "#8b8baf" : "#f4f5e9", justifyContent: "space-between", ...(unsettled ? { backgroundGradient: { from: preferences.widgetAutoTheme !== false ? sceneColors[0] : dark ? "#263343" : "#dce8e9", to: preferences.widgetAutoTheme !== false ? sceneColors[1] : dark ? "#3e445b" : "#b9d1da", orientation: "TL_BR" as const } } : {}) }}>
       <FlexWidget style={{ width: "match_parent", flexDirection: "row", alignItems: "center" }}>
         <FlexWidget style={{ flex: 1 }}><TextWidget text={forecast?.city.name || appName} maxLines={1} style={{ fontSize: 14, fontWeight: "700", color: foreground }} /></FlexWidget>
         <TextWidget text={offline ? "Сохранено" : updated} style={{ fontSize: 10, color: secondary }} />
