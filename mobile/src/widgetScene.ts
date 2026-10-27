@@ -22,8 +22,16 @@ export function widgetWeather(current: Forecast["current"]): WidgetWeather {
 
 /** @param {Forecast} forecast - Город и часовой пояс. @param {number} now - Время отображения. @returns {WidgetPeriod} Время суток в городе, независимо от настроек фона приложения. */
 export function widgetPeriod(forecast: Forecast, now = Date.now()): WidgetPeriod {
-  const hour = Number(new Intl.DateTimeFormat("en", { timeZone: forecast.timezone, hour: "2-digit", hourCycle: "h23" }).format(now));
-  return hour < 6 ? "night" : hour < 11 ? "morning" : hour < 18 ? "day" : hour < 22 ? "evening" : "night";
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: forecast.timezone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(now);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const date = `${values.year}-${values.month}-${values.day}`;
+  const time = `${values.hour}:${values.minute}`;
+  const day = forecast.days.find((value) => value.date.slice(0, 10) === date);
+  const sunrise = day?.sunrise?.slice(11, 16) || "06:00";
+  const sunset = day?.sunset?.slice(11, 16) || "20:00";
+  if (time < sunrise || time >= sunset) return "night";
+  const hour = Number(values.hour);
+  return hour < 10 ? "morning" : hour >= 17 ? "evening" : "day";
 }
 
 /** @param {WidgetWeather} weather - Приоритетная сцена. @returns {string | undefined} Уточнение опасных условий без выдачи официального предупреждения. */
