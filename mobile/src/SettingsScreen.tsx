@@ -14,7 +14,7 @@ type Glyph = keyof typeof Ionicons.glyphMap;
 type Page = "main" | "city" | "units" | "scene" | "widget" | "comfort" | "about" | "feedback";
 interface SettingsPreferences {
   cityBackground: boolean; sceneMode: SceneMode; widgetDark: boolean; widgetAutoTheme: boolean;
-  widgetClothes: boolean; fahrenheit: boolean; diagnostics: boolean; analytics: boolean;
+  widgetClothes: boolean; fahrenheit: boolean; diagnostics: boolean;
   occasion: OutfitOccasion; warmth: WarmthPreference;
 }
 interface Props {
@@ -72,7 +72,6 @@ export function SettingsScreen({ preferences: p, onChange, version, checking, on
       </Group>
       <Group label="ПРИЛОЖЕНИЕ">
         {Platform.OS === "android" && <Row icon="download-outline" label={checking ? "Проверяем обновления…" : "Обновления"} trailing={version} onPress={onCheck} disabled={checking} />}
-        {Platform.OS === "android" && <Row icon="stats-chart-outline" label="Статистика использования" hint="Помогает улучшать приложение" value={p.analytics} onValueChange={(analytics) => onChange({ analytics })} />}
         <Row icon="information-circle-outline" label="О приложении и данных" onPress={() => setPage("about")} />
         <Row icon="chatbubble-ellipses-outline" label="Обратная связь" onPress={() => setPage("feedback")} />
       </Group>
@@ -98,7 +97,7 @@ export function SettingsScreen({ preferences: p, onChange, version, checking, on
       <Text style={styles.note}>Обновляется примерно раз в 30 минут. Android может обновлять реже для экономии заряда.</Text>
     </>}
     {page === "comfort" && <><Group label="ВАШИ ПЛАНЫ"><UnderlineTabs label="Стиль одежды" choices={Object.entries(occasionLabels).map(([value, label]) => ({ value: value as OutfitOccasion, label }))} value={p.occasion} onChange={(occasion) => onChange({ occasion })} /></Group><Group label="КАК ВЫ ПЕРЕНОСИТЕ ХОЛОД"><UnderlineTabs label="Чувствительность к холоду" choices={Object.entries(warmthLabels).map(([value, label]) => ({ value: value as WarmthPreference, label }))} value={p.warmth} onChange={(warmth) => onChange({ warmth })} /></Group><Text style={styles.note}>Применяется к подбору одежды в приложении и виджете.</Text></>}
-    {page === "about" && <><Text style={styles.note}>Настройки хранятся на устройстве. Аккаунт не требуется. Геолокация — только по нажатию; координаты передаются сервису погоды.</Text><Text style={styles.note}>AppMetrica помогает измерять посещения, возвраты и использование подборок. Отправка включается переключателем статистики. Город, поисковые запросы, координаты и названия вещей в события не передаются.</Text>{children}<Row icon="code-slash-outline" label="Диагностика разработчика" value={p.diagnostics} onValueChange={(diagnostics) => onChange({ diagnostics })} /></>}
+    {page === "about" && <><Text style={styles.note}>Настройки хранятся на устройстве. Аккаунт не требуется. Геолокация — только по нажатию; координаты передаются сервису погоды.</Text><Text style={styles.note}>AppMetrica помогает измерять посещения, возвраты и использование подборок. Статистика использования включена по умолчанию. Город, поисковые запросы, координаты и названия вещей в события не передаются.</Text>{children}<Row icon="code-slash-outline" label="Диагностика разработчика" value={p.diagnostics} onValueChange={(diagnostics) => onChange({ diagnostics })} /></>}
     {page === "feedback" && <><Row icon="mail-outline" label="Написать разработчику" onPress={onFeedback} /><Row icon="heart-outline" label="Оценить в RuStore" onPress={onRate} /><Row icon="notifications-outline" label="Напоминать об оценке" hint="В приложении, без уведомлений" value={reviewsEnabled} onValueChange={onReviewsChange} /></>}
   </View>;
 }

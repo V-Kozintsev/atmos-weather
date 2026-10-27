@@ -45,7 +45,6 @@ interface Preferences extends OutfitPreferences {
   gender: "woman" | "man";
   fahrenheit: boolean;
   diagnostics: boolean;
-  analytics: boolean;
   widgetDark: boolean;
   widgetAutoTheme: boolean;
   widgetClothes: boolean;
@@ -57,7 +56,6 @@ const initial: Preferences = {
   gender: "woman",
   fahrenheit: false,
   diagnostics: false,
-  analytics: false,
   widgetDark: true,
   widgetAutoTheme: true,
   widgetClothes: true,
@@ -93,14 +91,14 @@ function Atmos(): React.JSX.Element {
   const updates = useAppUpdates(hydrated);
   const reviews = useReviews(!!forecast && !stale && !loading);
   useEffect(() => {
-    if (hydrated) setAnalyticsEnabled(preferences.analytics);
-  }, [hydrated, preferences.analytics]);
+    if (hydrated) setAnalyticsEnabled(true);
+  }, [hydrated]);
   useEffect(() => {
     if (hydrated) trackEvent("screen_view", { screen: tab });
-  }, [tab, hydrated, preferences.analytics]);
+  }, [tab, hydrated]);
   useEffect(() => {
     if (tab === "outfit" && forecast) trackEvent("outfit_view", { period });
-  }, [tab, period, forecast?.fetchedAt, preferences.analytics]);
+  }, [tab, period, forecast?.fetchedAt]);
   useEffect(() => {
     if (forecast && !stale) trackEvent("forecast_loaded");
   }, [forecast?.fetchedAt, stale]);
@@ -143,7 +141,6 @@ function Atmos(): React.JSX.Element {
             : "balanced",
         fahrenheit: saved.fahrenheit === true,
         diagnostics: saved.diagnostics === true,
-        analytics: saved.analytics === true,
         widgetDark: saved.widgetDark !== false,
         widgetAutoTheme: saved.widgetAutoTheme !== false,
         widgetClothes: saved.widgetClothes !== false,
