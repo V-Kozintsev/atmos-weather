@@ -115,9 +115,10 @@ export const s = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#e6ebdf",
   },
-  navItem: { flex: 1, alignItems: "center", gap: 3, minHeight: 60 },
+  navItem: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 6, minHeight: 60 },
   navCompact: { paddingTop: 8, paddingBottom: 6 },
   navItemCompact: { minHeight: 48 },
+  navSelection: { width: "100%", maxWidth: 128, minHeight: 48, paddingVertical: 4, paddingHorizontal: 2, borderRadius: 12, alignItems: "center", justifyContent: "center", gap: 2 },
   navIcon: {
     width: 40,
     height: 28,
@@ -126,8 +127,7 @@ export const s = StyleSheet.create({
   },
   navLabel: { fontFamily, fontSize: 12, lineHeight: 16, fontWeight: "500", color: "#7b897e" },
   navLabelSelected: { fontWeight: "700", color: "#21483e" },
-  navIndicator: { width: 22, height: 3, borderRadius: 2, backgroundColor: "transparent" },
-  navIndicatorSelected: { backgroundColor: "#21483e" },
+  navIndicator: { position: "absolute", top: 0, width: 28, height: 3, borderRadius: 2, backgroundColor: "transparent" },
   input: {
     marginHorizontal: 20,
     marginVertical: 10,

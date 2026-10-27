@@ -448,15 +448,17 @@ function Atmos(): React.JSX.Element {
             style={[s.navItem, compactWeather && s.navItemCompact]}
             onPress={() => setTab(value)}
           >
-            <View style={s.navIcon}>
-              <Ionicons
-                name={glyph}
-                size={25}
-                color={tab === value ? theme.accent : theme.muted}
-              />
+            <View style={[s.navSelection, tab === value && { backgroundColor: theme.dark ? "#354d49" : theme.divider }]}>
+              <View style={[s.navIndicator, tab === value && { backgroundColor: theme.accent }]} />
+              <View style={s.navIcon}>
+                <Ionicons
+                  name={glyph}
+                  size={25}
+                  color={tab === value ? theme.accent : theme.muted}
+                />
+              </View>
+              <Text style={[s.navLabel, tab === value && s.navLabelSelected, { color: tab === value ? theme.accent : theme.muted }]}>{label}</Text>
             </View>
-            <Text style={[s.navLabel, tab === value && s.navLabelSelected, { color: tab === value ? theme.accent : theme.muted }]}>{label}</Text>
-            <View style={[s.navIndicator, tab === value && s.navIndicatorSelected, tab === value && { backgroundColor: theme.accent }]} />
           </Pressable>
         ))}
       </View>
