@@ -30,6 +30,7 @@ import { OutfitCustomization } from "./src/OutfitCustomization";
 import { pinWidget, syncWidgets } from "./src/widget";
 import { useReviews, reviewUrl } from "./src/reviews";
 import { useAppUpdates } from "./src/useAppUpdates";
+import { WeatherAd } from "./src/WeatherAd";
 import { appName, appVersion } from "../src/lib/appInfo";
 import { UpdateCard } from "./src/UpdateCard";
 import { sceneModes, cityPhotoCredits, type SceneMode } from "./src/CityBackdrop";
@@ -407,6 +408,7 @@ function Atmos(): React.JSX.Element {
           </Text>
         )}
         {forecast && tab === "outfit" && Platform.OS === "web" && <Chip label={loading ? "Обновляем…" : "Обновить прогноз"} onPress={refresh} />}
+        {tab === "weather" && forecast && <WeatherAd />}
         {tab === "weather" && reviews.visible && (
           <View style={s.card}>
             <Text style={s.subtitle}>Как вам приложение?</Text>

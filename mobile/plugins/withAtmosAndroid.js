@@ -1,7 +1,14 @@
-const { withAppBuildGradle, withProjectBuildGradle } = require("expo/config-plugins");
+const { withAppBuildGradle, withProjectBuildGradle, withAndroidManifest } = require("expo/config-plugins");
 
 /** @param {object} config - Конфигурация Expo. @returns {object} Android с отдельным тестовым приложением и обязательной подписью релиза. */
 module.exports = function withAtmosAndroid(config) {
+  config = withAndroidManifest(config, (mod) => {
+    const application = mod.modResults.manifest.application[0];
+    const key = "com.yandex.mobile.ads.AUTOMATIC_SDK_INITIALIZATION";
+    const metadata = application["meta-data"] || [];
+    application["meta-data"] = [...metadata.filter((entry) => entry.$["android:name"] !== key), { $: { "android:name": key, "android:value": "false" } }];
+    return mod;
+  });
   config = withProjectBuildGradle(config, (mod) => {
     const repository = "https://nexus-external.rustore.ru/repository/maven-rustore-exposed";
     if (!mod.modResults.contents.includes(repository)) {

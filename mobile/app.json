@@ -19,6 +19,7 @@
       },
       "blockedPermissions": [
         "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "com.google.android.gms.permission.AD_ID",
         "android.permission.RECORD_AUDIO",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",

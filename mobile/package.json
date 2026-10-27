@@ -20,7 +20,8 @@
     "react-native-svg": "15.15.4",
     "react-native-web": "^0.21.2",
     "suncalc": "^2.1.1",
-    "tz-lookup": "^6.1.25"
+    "tz-lookup": "^6.1.25",
+    "yandex-mobile-ads": "^8.5.0"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
