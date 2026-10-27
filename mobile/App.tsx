@@ -1,4 +1,4 @@
-import { TimeThemeContext, baseTheme, useSceneTheme } from "./src/timeTheme";
+import { TimeThemeContext, timeThemes, useSceneTheme } from "./src/timeTheme";
 import { useEffect, useState } from "react";
 import { useFonts } from "expo-font";
 import { fontAssets } from "./src/typography";
@@ -30,6 +30,7 @@ import { OutfitCustomization } from "./src/OutfitCustomization";
 import { pinWidget, syncWidgets } from "./src/widget";
 import { useReviews, reviewUrl } from "./src/reviews";
 import { useAppUpdates } from "./src/useAppUpdates";
+import { setAnalyticsEnabled, trackEvent } from "./src/analytics";
 import { WeatherAd } from "./src/WeatherAd";
 import { appName, appVersion } from "../src/lib/appInfo";
 import { UpdateCard } from "./src/UpdateCard";
@@ -44,6 +45,7 @@ interface Preferences extends OutfitPreferences {
   gender: "woman" | "man";
   fahrenheit: boolean;
   diagnostics: boolean;
+  analytics: boolean;
   widgetDark: boolean;
   widgetAutoTheme: boolean;
   widgetClothes: boolean;
@@ -55,6 +57,7 @@ const initial: Preferences = {
   gender: "woman",
   fahrenheit: false,
   diagnostics: false,
+  analytics: false,
   widgetDark: true,
   widgetAutoTheme: true,
   widgetClothes: true,
@@ -85,10 +88,22 @@ function Atmos(): React.JSX.Element {
   const [notice, setNotice] = useState("");
   const { forecast, loading, stale, error, refresh } = useForecast(city);
   const sceneTheme = useSceneTheme(forecast, preferences.sceneMode);
-  const theme = tab === "settings" ? baseTheme : sceneTheme;
+  const theme = tab === "settings" ? timeThemes.day : sceneTheme;
   const cityPhoto = useCityPhoto(city, preferences.cityBackground && !!city && !cityPhotoKey(city));
   const updates = useAppUpdates(hydrated);
   const reviews = useReviews(!!forecast && !stale && !loading);
+  useEffect(() => {
+    if (hydrated) setAnalyticsEnabled(preferences.analytics);
+  }, [hydrated, preferences.analytics]);
+  useEffect(() => {
+    if (hydrated) trackEvent("screen_view", { screen: tab });
+  }, [tab, hydrated, preferences.analytics]);
+  useEffect(() => {
+    if (tab === "outfit" && forecast) trackEvent("outfit_view", { period });
+  }, [tab, period, forecast?.fetchedAt, preferences.analytics]);
+  useEffect(() => {
+    if (forecast && !stale) trackEvent("forecast_loaded");
+  }, [forecast?.fetchedAt, stale]);
   useEffect(() => {
     if (forecast && hydrated) void syncWidgets(forecast, preferences, stale);
   }, [forecast, hydrated, preferences, stale]);
@@ -128,6 +143,7 @@ function Atmos(): React.JSX.Element {
             : "balanced",
         fahrenheit: saved.fahrenheit === true,
         diagnostics: saved.diagnostics === true,
+        analytics: saved.analytics === true,
         widgetDark: saved.widgetDark !== false,
         widgetAutoTheme: saved.widgetAutoTheme !== false,
         widgetClothes: saved.widgetClothes !== false,
@@ -163,6 +179,7 @@ function Atmos(): React.JSX.Element {
 
   /** @param {City} next - Город пользователя. @returns {void} Закрывает поиск и сбрасывает день прогноза. */
   function chooseCity(next: City): void {
+    trackEvent("city_selected", { source: next.id.startsWith("geo:") ? "location" : "search" });
     setCity(next);
     setDayIndex(0);
     setSearchVisible(false);
@@ -288,7 +305,7 @@ function Atmos(): React.JSX.Element {
   return (
     <TimeThemeContext.Provider value={theme}><SafeAreaView style={[s.safe, { backgroundColor: theme.page }]} edges={["top", "left", "right", "bottom"]}>
       <StatusBar style={theme.dark && !searchVisible ? "light" : "dark"} />
-      <View style={[s.header, wide && s.bodyWide, tab === "weather" && s.headerWeather]}>
+      {tab !== "settings" && <View style={[s.header, wide && s.bodyWide, tab === "weather" && s.headerWeather]}>
         <View style={{ flexShrink: 1 }}>
           <Text style={[tab === "outfit" ? s.outfitPageTitle : tab === "weather" ? s.weatherBrand : s.brand, { color: theme.primary }]}>{tab === "outfit" ? "Что надеть" : appName}</Text>
         </View>
@@ -303,7 +320,7 @@ function Atmos(): React.JSX.Element {
             {city?.name || "Загрузка"}
           </Text>
         </Pressable>
-      </View>
+      </View>}
       <UpdateCard state={updates.state} onUpdate={() => void updates.update()} onDismiss={() => void updates.dismiss()} onStore={() => void openLink(reviewUrl)} suspended={searchVisible} />
       <ScrollView
         key={`${tab}:${city?.id}`}
@@ -355,12 +372,13 @@ function Atmos(): React.JSX.Element {
         {tab === "settings" && <SettingsScreen
           preferences={preferences} onChange={update} version={appVersion}
           checking={updates.busy} onCheck={() => void updates.check(true)}
-          city={city} favorites={favorites} locating={locating}
+          city={city} forecast={forecast} favorites={favorites} locating={locating}
           onCity={() => setSearchVisible(true)} onLocate={() => { if (!locating) void locate(); }}
           onFavorite={(value) => { chooseCity(value); setTab("weather"); }}
           onWidget={() => void pinWidget().then((requested) => setNotice(requested
             ? "Подтвердите добавление. Если телефон пишет «Нет места», добавьте виджет вручную на другой рабочий экран через меню «Виджеты»."
             : "Зажмите пустое место на рабочем экране → Виджеты → Погода и что надеть. Перетащите виджет на свободный участок примерно 3 × 2 клетки."))}
+          onFeedback={() => void openLink("mailto:aurelio3@mail.ru?subject=" + encodeURIComponent("Погода и что надеть — обратная связь"))}
           onRate={() => void reviews.rate().catch(() => setNotice("Не удалось открыть RuStore. Попробуйте позже."))}
           reviewsEnabled={!reviews.disabled} onReviewsChange={(enabled) => void reviews.dismiss(!enabled)}
         >

@@ -7,6 +7,7 @@ import type { OutfitAdvice, OutfitOccasion, WarmthPreference } from "../../src/l
 import { outfitItems, outfitSearchUrl } from "./outfitItems";
 import { UnderlineTabs, type UnderlineChoice } from "./UnderlineTabs";
 import { outfitPreferenceSummary, occasionLabels, warmthLabels } from "./outfitPreferences";
+import { trackEvent } from "./analytics";
 import { s } from "./ui";
 
 // Иконки издателей из Google Play: ru.ozon.app.android и com.wildberries.ru.
@@ -65,8 +66,8 @@ export function OutfitCustomization({ advice, gender, occasion, warmth, onOccasi
         <Text style={styles.itemNumber}>{String(index + 1).padStart(2, "0")}</Text>
         <View style={s.flex}><Text style={styles.itemName}>{item.text}</Text></View>
         <View style={[styles.links, fontScale > 1.25 && styles.linksWrapped]}>
-          <StoreLink store="Ozon" item={item.text} onPress={() => void onOpen(outfitSearchUrl("ozon", item.text, gender))} />
-          <StoreLink store="WB" item={item.text} onPress={() => void onOpen(outfitSearchUrl("wb", item.text, gender))} />
+          <StoreLink store="Ozon" item={item.text} onPress={() => { trackEvent("store_open", { store: "ozon" }); void onOpen(outfitSearchUrl("ozon", item.text, gender)); }} />
+          <StoreLink store="WB" item={item.text} onPress={() => { trackEvent("store_open", { store: "wb" }); void onOpen(outfitSearchUrl("wb", item.text, gender)); }} />
         </View>
       </View>)}
     </View>
