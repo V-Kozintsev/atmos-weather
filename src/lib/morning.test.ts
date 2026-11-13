@@ -26,7 +26,7 @@ describe("morning advice", () => {
   it("describes the daytime outfit with the outer layer first", () => {
     const message = morningMessage(forecast, "2026-11-13", preferences);
     expect(message?.title).toBe("Москва: сегодня 0° по ощущениям");
-    expect(message?.body).toBe("Ясно. Наденьте: тёплая куртка, свитер, брюки, тёплая закрытая обувь, шапка, шарф, перчатки.");
+    expect(message?.body).toBe("Ясно. Наденьте: тёплая куртка, свитер, брюки, тёплая закрытая обувь. Пригодятся: шапка, шарф, перчатки.");
   });
   it("ignores the cold night hours and warns about rain", () => {
     const message = morningMessage(forecast, "2026-11-14", preferences);

@@ -32,11 +32,12 @@ export function morningMessage(forecast: Forecast, date: string, preferences: Ou
   const range = low === high ? `${low}°` : `от ${low}° до ${high}°`;
   const sky = advice.snow ? "Возможен снег" : advice.rain ? "Возможен дождь" : advice.wind >= 25 ? "Ветрено" : condition(day.code);
   const { outer, upper, lower, shoes, accessories } = advice.pieces;
-  const items = [outer, upper, lower, shoes, ...accessories].filter((item): item is string => Boolean(item)).map(inline);
+  const wear = [outer, upper, lower, shoes].filter((item): item is string => Boolean(item)).map(inline);
+  const extras = accessories.map(inline);
   return {
     date,
     title: `${forecast.city.name}: сегодня ${range} по ощущениям`,
-    body: `${sky}. Наденьте: ${items.join(", ")}.`,
+    body: `${sky}. Наденьте: ${wear.join(", ")}.${extras.length ? ` Пригодятся: ${extras.join(", ")}.` : ""}`,
   };
 }
 
