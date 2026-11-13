@@ -24,7 +24,7 @@
 
 | Версия | Возможности |
 | :--- | :--- |
-| **[Android](https://www.rustore.ru/catalog/app/ru.puskweb.atmos)** | React Native / Expo: компактный интерфейс, виджет, увеличение фото и атмосферные фоны. В RuStore опубликована 3.0; готовится обновление 3.0.1 с новым названием и предложением обновлений внутри приложения. |
+| **[Android](https://www.rustore.ru/catalog/app/ru.puskweb.atmos)** | React Native / Expo: компактный интерфейс, виджет, увеличение фото и атмосферные фоны. В RuStore опубликована 3.0.12. В Google Play та же версия пока доступна только участникам закрытого тестирования. |
 | **[Веб](https://v-kozintsev.github.io/atmos-weather/)** | Тот же интерфейс React Native / Expo: две колонки на компьютере, мобильный вид на телефоне, установка на главный экран и обновления. |
 | **[Windows](https://github.com/V-Kozintsev/atmos-weather/releases/latest)** | Electron: мини-погода поверх окон, область уведомлений и обновления установщика. |
 
@@ -62,7 +62,7 @@ npm run native:android
 - Веб Expo/PWA: `npm run build:web`, результат — `mobile/dist-web`. Для GitHub Pages задайте `ATMOS_WEB_BASE_PATH=/atmos-weather`. Прежняя веб-сборка для Electron / Capacitor: `npm run build`; локальный запуск — `npm run dev:legacy`.
 - Проверки: `npm test`, `npm run typecheck`, `npm run native:typecheck`.
 - Windows: `npm run desktop`; установщик и portable: `npm run desktop:build`.
-- Android: `npm --prefix mobile run prebuild:android`, затем `npm --prefix mobile run build:android`.
+- Android: `npm --prefix mobile run prebuild:android`, затем `npm --prefix mobile run build:android`. Сборки для магазинов: `node mobile/scripts/build-store.cjs rustore` (APK) и `node mobile/scripts/build-store.cjs google-play` (AAB).
 - iOS: `npm --prefix mobile run ios` на Mac с Xcode.
 
 Android-релиз использует пакет `ru.puskweb.atmos` и прежний ключ подписи. Параметры `ATMOS_KEYSTORE`, `ATMOS_STORE_PASSWORD`, `ATMOS_KEY_ALIAS`, `ATMOS_KEY_PASSWORD` передаются через окружение. Ключи и пароли не входят в репозиторий. Тестовый пакет — `ru.puskweb.atmos.dev`.
