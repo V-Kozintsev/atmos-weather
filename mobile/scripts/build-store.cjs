@@ -21,5 +21,8 @@ run(process.execPath, [require.resolve("expo/bin/cli"), "prebuild", "--platform"
 // The autolinking command depends on the store environment, which Gradle does not track as a file input.
 rmSync(path.join(root, "android/build/generated/autolinking/autolinking.json"), { force: true });
 const task = store === "google-play" ? ":app:bundleRelease" : ":app:assembleRelease";
-if (process.platform === "win32") run("cmd.exe", ["/d", "/s", "/c", `gradlew.bat ${task} --no-daemon`], path.join(root, "android"));
-else run("./gradlew", [task, "--no-daemon"], path.join(root, "android"));
+// RuStore получает один общий APK: библиотеки x86 нужны только эмуляторам и добавляют около 34 МБ.
+// AAB для Google Play собирается со всеми ABI — магазин сам отдаёт устройству нужную часть.
+const architectures = store === "rustore" ? " -PreactNativeArchitectures=armeabi-v7a,arm64-v8a" : "";
+if (process.platform === "win32") run("cmd.exe", ["/d", "/s", "/c", `gradlew.bat ${task}${architectures} --no-daemon`], path.join(root, "android"));
+else run("./gradlew", [task, ...architectures.trim().split(" ").filter(Boolean), "--no-daemon"], path.join(root, "android"));

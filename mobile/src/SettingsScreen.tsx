@@ -10,13 +10,14 @@ import { occasionLabels, warmthLabels } from "./outfitPreferences";
 import { useTimeTheme } from "./timeTheme";
 import { WidgetSettingsPreview } from "./WidgetSettingsPreview";
 import { storeName } from "./distribution";
+import { morningTimes, type MorningTime } from "../../src/lib/morning";
 
 type Glyph = keyof typeof Ionicons.glyphMap;
-type Page = "main" | "city" | "units" | "scene" | "widget" | "comfort" | "about" | "feedback";
+type Page = "main" | "city" | "units" | "scene" | "widget" | "comfort" | "morning" | "about" | "feedback";
 interface SettingsPreferences {
   cityBackground: boolean; weatherMotion: boolean; sceneMode: SceneMode; widgetDark: boolean; widgetAutoTheme: boolean;
   widgetClothes: boolean; fahrenheit: boolean; diagnostics: boolean; personalizedAds: boolean;
-  occasion: OutfitOccasion; warmth: WarmthPreference;
+  occasion: OutfitOccasion; warmth: WarmthPreference; morningAdvice: boolean; morningTime: MorningTime;
 }
 interface Props {
   preferences: SettingsPreferences; onChange: (change: Partial<SettingsPreferences>) => void;
@@ -24,9 +25,9 @@ interface Props {
   city?: City; favorites: City[]; locating: boolean;
   onCity: () => void; onLocate: () => void; onFavorite: (city: City) => void;
   onWidget: () => Promise<boolean>; onRate: () => void; onFeedback: () => void; reviewsEnabled: boolean;
-  onReviewsChange: (enabled: boolean) => void; children: ReactNode;
+  onReviewsChange: (enabled: boolean) => void; morningBusy: boolean; onMorningAdvice: (enabled: boolean) => void; children: ReactNode;
 }
-const titles: Record<Page, string> = { main: "Настройки", city: "Город", units: "Единицы", scene: "Время суток", widget: "Виджет", comfort: "Стиль и комфорт", about: "О приложении", feedback: "Обратная связь" };
+const titles: Record<Page, string> = { main: "Настройки", city: "Город", units: "Единицы", scene: "Время суток", widget: "Виджет", comfort: "Стиль и комфорт", morning: "Утренний совет", about: "О приложении", feedback: "Обратная связь" };
 
 /** @param {object} props - Название группы и строки. @returns {React.JSX.Element} Открытая группа настроек без фоновой карточки. */
 function Group({ label, children }: { label: string; children: ReactNode }): React.JSX.Element {
@@ -48,7 +49,7 @@ function Row({ icon, label, hint, trailing, onPress, value, onValueChange, disab
 }
 
 /** @param {Props} props - Действующие настройки и обработчики приложения. @returns {React.JSX.Element} Компактное меню и отдельные страницы настроек с системным возвратом. */
-export function SettingsScreen({ preferences: p, onChange, version, checking, onCheck, city, forecast, favorites, locating, onCity, onLocate, onFavorite, onWidget, onRate, onFeedback, reviewsEnabled, onReviewsChange, children }: Props): React.JSX.Element {
+export function SettingsScreen({ preferences: p, onChange, version, checking, onCheck, city, forecast, favorites, locating, onCity, onLocate, onFavorite, onWidget, onRate, onFeedback, reviewsEnabled, onReviewsChange, morningBusy, onMorningAdvice, children }: Props): React.JSX.Element {
   const [page, setPage] = useState<Page>("main");
   const [help, setHelp] = useState(false);
   const [addingWidget, setAddingWidget] = useState(false);
@@ -90,6 +91,7 @@ export function SettingsScreen({ preferences: p, onChange, version, checking, on
         <Row icon="location-outline" label="Город" trailing={city?.name || "Выбрать"} onPress={() => setPage("city")} />
         <Row icon="thermometer-outline" label="Единицы" trailing={`${p.fahrenheit ? "°F" : "°C"}, м/с`} onPress={() => setPage("units")} />
         <Row icon="shirt-outline" label="Стиль и комфорт" onPress={() => setPage("comfort")} />
+        {Platform.OS === "android" && <Row icon="notifications-outline" label="Утренний совет" trailing={p.morningAdvice ? p.morningTime : "Выкл."} onPress={() => setPage("morning")} />}
       </Group>
       <Group label="ОФОРМЛЕНИЕ">
         <Row icon="sunny-outline" label="Время суток" trailing={sceneModes.find(([value]) => value === p.sceneMode)?.[1]} onPress={() => setPage("scene")} />
@@ -124,6 +126,11 @@ export function SettingsScreen({ preferences: p, onChange, version, checking, on
       <Text style={styles.note}>Обновляется примерно раз в 30 минут. Android может обновлять реже для экономии заряда.</Text>
     </>}
     {page === "comfort" && <><Group label="ВАШИ ПЛАНЫ"><UnderlineTabs label="Стиль одежды" choices={Object.entries(occasionLabels).map(([value, label]) => ({ value: value as OutfitOccasion, label }))} value={p.occasion} onChange={(occasion) => onChange({ occasion })} /></Group><Group label="КАК ВЫ ПЕРЕНОСИТЕ ХОЛОД"><UnderlineTabs label="Чувствительность к холоду" choices={Object.entries(warmthLabels).map(([value, label]) => ({ value: value as WarmthPreference, label }))} value={p.warmth} onChange={(warmth) => onChange({ warmth })} /></Group><Text style={styles.note}>Применяется к подбору одежды в приложении и виджете.</Text></>}
+    {page === "morning" && Platform.OS === "android" && <>
+      <Row icon="notifications-outline" label={morningBusy ? "Включаем…" : "Присылать утром"} hint="Погода на день и что надеть" value={p.morningAdvice} onValueChange={(enabled) => { if (!morningBusy) onMorningAdvice(enabled); }} />
+      {p.morningAdvice && <Group label="ВРЕМЯ">{morningTimes.map((morningTime) => <Row key={morningTime} icon={p.morningTime === morningTime ? "checkmark-circle-outline" : "ellipse-outline"} label={morningTime} onPress={() => onChange({ morningTime })} />)}</Group>}
+      <Text style={styles.note}>Одно уведомление в день для выбранного города. Совет составляем на устройстве по последнему прогнозу; если на главном экране есть виджет, текст обновляется и в фоне. Отключить можно здесь или в настройках уведомлений Android.</Text>
+    </>}
     {page === "about" && <><Text style={styles.note}>Настройки хранятся на устройстве. Аккаунт не требуется. Геолокация — только по нажатию; координаты передаются сервису погоды.</Text><Text style={styles.note}>AppMetrica помогает измерять посещения, возвраты и использование подборок. Статистика использования включена по умолчанию. Город, поисковые запросы, координаты и названия вещей в события не передаются.</Text>{Platform.OS === "android" && <Row icon="megaphone-outline" label="Реклама по интересам" hint="Только с вашего разрешения, для пользователей 18+" value={p.personalizedAds} onValueChange={changeAdPersonalization} />}{children}<Row icon="code-slash-outline" label="Диагностика разработчика" value={p.diagnostics} onValueChange={(diagnostics) => onChange({ diagnostics })} /></>}
     {page === "feedback" && <><Row icon="mail-outline" label="Написать разработчику" onPress={onFeedback} /><Row icon="heart-outline" label={`Оценить в ${storeName}`} onPress={onRate} /><Row icon="notifications-outline" label="Напоминать об оценке" hint="В приложении, без уведомлений" value={reviewsEnabled} onValueChange={onReviewsChange} /></>}
   </View>;

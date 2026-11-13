@@ -17,7 +17,6 @@ const retryDelay = 60_000;
 export function setAdPersonalization(enabled: boolean): void {
   personalization = enabled === true;
   try {
-    client?.MobileAds.setAgeRestrictedUser(!personalization);
     client?.MobileAds.setUserConsent(personalization);
   }
   catch { adLog("consent update failed"); }
@@ -36,14 +35,14 @@ function adEvent(event: AnalyticsEvent, detail: AnalyticsParameters = {}): void 
   if (!__DEV__) trackEvent(event, { screen: "weather", ...detail });
 }
 
-/** @returns {Promise<Ads>} Подключает SDK без геолокации, передавая только фактическое согласие пользователя. */
+/** @returns {Promise<Ads>} Подключает SDK без геолокации, передавая только фактическое согласие пользователя. Приложение рассчитано на общую аудиторию, поэтому трафик не помечается как детский: без согласия реклама остаётся неперсонализированной. */
 function initializeAds(): Promise<Ads> {
   if (!initialization) initialization = (async () => {
     adLog("initialization");
     const sdk: Ads = require("yandex-mobile-ads");
     client = sdk;
     sdk.MobileAds.setLocationConsent(false);
-    sdk.MobileAds.setAgeRestrictedUser(!personalization);
+    sdk.MobileAds.setAgeRestrictedUser(false);
     sdk.MobileAds.setUserConsent(personalization);
     await sdk.MobileAds.initialize();
     adLog("ready");
@@ -130,7 +129,7 @@ export function WeatherAd({ personalizedAds = false }: { personalizedAds?: boole
   return <View onLayout={measure} style={{ alignItems: "center", minHeight: 140, paddingTop: 18, paddingBottom: 8, gap: 6 }}>
     {ready?.width === width && ready.personalizedAds === personalizedAds && <>
       <Text style={{ alignSelf: "flex-start", color: theme.muted, fontSize: 10 }}>Реклама</Text>
-      <Banner key={`${width}:${attempt}:${theme.dark}:${personalizedAds}`} sdk={ready.sdk} size={ready.size} dark={theme.dark} attempt={attempt} onFailure={onFailure} />
+      <Banner key={`${width}:${attempt}:${personalizedAds}`} sdk={ready.sdk} size={ready.size} dark={theme.dark} attempt={attempt} onFailure={onFailure} />
     </>}
   </View>;
 }

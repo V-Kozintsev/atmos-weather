@@ -1,12 +1,28 @@
-const { withAppBuildGradle, withProjectBuildGradle, withAndroidManifest, withAndroidStyles, withAndroidColors } = require("expo/config-plugins");
+const { withAppBuildGradle, withProjectBuildGradle, withAndroidManifest, withAndroidStyles, withAndroidColors, withDangerousMod } = require("expo/config-plugins");
+const fs = require("node:fs");
+const path = require("node:path");
+
+// Белый силуэт футболки для строки состояния: Android окрашивает значок уведомления сам.
+const notificationIcon = `<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M8,4L4,6L2,11L6,13L8,10L8,20L16,20L16,10L18,13L22,11L20,6L16,4C15,7 9,7 8,4Z" />
+</vector>
+`;
 
 /** @param {object} config - Конфигурация Expo. @returns {object} Android с отдельным тестовым приложением и обязательной подписью релиза. */
 module.exports = function withAtmosAndroid(config) {
   config = withAndroidColors(config, (mod) => {
     const colors = mod.modResults.resources.color || [];
-    mod.modResults.resources.color = [...colors.filter((entry) => entry.$.name !== "splashscreen_background"), { $: { name: "splashscreen_background" }, _: "#eef1eb" }];
+    const own = { splashscreen_background: "#eef1eb", notification_icon_color: "#163c49" };
+    mod.modResults.resources.color = [...colors.filter((entry) => !(entry.$.name in own)), ...Object.entries(own).map(([name, value]) => ({ $: { name }, _: value }))];
     return mod;
   });
+  config = withDangerousMod(config, ["android", async (mod) => {
+    const drawable = path.join(mod.modRequest.platformProjectRoot, "app/src/main/res/drawable");
+    fs.mkdirSync(drawable, { recursive: true });
+    fs.writeFileSync(path.join(drawable, "notification_icon.xml"), notificationIcon);
+    return mod;
+  }]);
   config = withAndroidStyles(config, (mod) => {
     for (const style of mod.modResults.resources.style || []) {
       if (!["AppTheme", "Theme.App.SplashScreen"].includes(style.$.name)) continue;
@@ -18,9 +34,14 @@ module.exports = function withAtmosAndroid(config) {
   });
   config = withAndroidManifest(config, (mod) => {
     const application = mod.modResults.manifest.application[0];
-    const key = "com.yandex.mobile.ads.AUTOMATIC_SDK_INITIALIZATION";
+    const own = [
+      { $: { "android:name": "com.yandex.mobile.ads.AUTOMATIC_SDK_INITIALIZATION", "android:value": "false" } },
+      { $: { "android:name": "expo.modules.notifications.default_notification_icon", "android:resource": "@drawable/notification_icon" } },
+      { $: { "android:name": "expo.modules.notifications.default_notification_color", "android:resource": "@color/notification_icon_color" } },
+    ];
+    const names = own.map((entry) => entry.$["android:name"]);
     const metadata = application["meta-data"] || [];
-    application["meta-data"] = [...metadata.filter((entry) => entry.$["android:name"] !== key), { $: { "android:name": key, "android:value": "false" } }];
+    application["meta-data"] = [...metadata.filter((entry) => !names.includes(entry.$["android:name"])), ...own];
     return mod;
   });
   config = withProjectBuildGradle(config, (mod) => {

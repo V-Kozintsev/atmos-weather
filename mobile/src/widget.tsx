@@ -27,6 +27,7 @@ import { read, write } from "./storage";
 import { activeComfortOffset, type ComfortHistory } from "./comfortPolicy";
 import { loadForecast, savedForecast, log } from "./weather";
 import { widgetPeriod, widgetWeather, widgetWeatherLabel } from "./widgetScene";
+import { refreshMorningAdvice } from "./morningAdvice";
 
 export interface WidgetPreferences extends OutfitPreferences {
   fahrenheit: boolean;
@@ -189,6 +190,8 @@ export async function widgetTaskHandler(
       status={props.clickAction === "REFRESH_WEATHER" ? offline ? "Нет сети — сохранённая погода" : "Прогноз актуален" : undefined}
     />,
   );
+  // После отрисовки виджета: свежий прогноз заодно обновляет тексты утренних советов.
+  if (forecast && !offline) await refreshMorningAdvice(forecast).catch(() => log("morning refresh skipped"));
 }
 
 /** @param {Forecast} forecast - Загруженный прогноз. @param {WidgetPreferences} preferences - Оформление и единицы. @param {boolean} offline - Сохранённые данные. @returns {Promise<void>} Синхронизирует все установленные виджеты с приложением. */

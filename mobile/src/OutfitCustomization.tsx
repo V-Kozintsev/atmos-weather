@@ -4,7 +4,7 @@ import { Image, Pressable, StyleSheet, View, useWindowDimensions } from "react-n
 import { Text, fontNames } from "./typography";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import type { OutfitAdvice, OutfitOccasion, WarmthPreference } from "../../src/lib/outfit";
-import { outfitItems, outfitSearchUrl } from "./outfitItems";
+import { outfitItems, outfitSearchUrl, partnerLinksEnabled } from "./outfitItems";
 import { UnderlineTabs, type UnderlineChoice } from "./UnderlineTabs";
 import { outfitPreferenceSummary, occasionLabels } from "./outfitPreferences";
 import { trackEvent } from "./analytics";
@@ -65,7 +65,7 @@ export function OutfitCustomization({ advice, gender, occasion, warmth, onOccasi
         </View>
       </View>)}
     </View>
-    <Text style={styles.hint}>Ozon и WB — поиск похожих вещей, не товаров с фото.</Text>
+    <Text style={styles.hint}>{partnerLinksEnabled ? "Ozon и WB — поиск похожих вещей, не товаров с фото. Ссылки партнёрские: с покупки мы можем получить комиссию, цена для вас не меняется." : "Ozon и WB — поиск похожих вещей, не товаров с фото."}</Text>
     <Pressable accessibilityRole="button" accessibilityLabel="Стиль и комфорт" accessibilityState={{ expanded: settingsVisible }} onPress={() => setSettingsVisible(!settingsVisible)} style={styles.customize}>
       <Ionicons name="options-outline" size={20} color={theme.primary} /><View style={s.flex}><Text style={styles.customizeText}>Стиль и комфорт</Text><Text style={styles.hint}>{outfitPreferenceSummary(occasion, warmth)}</Text></View><Ionicons name={settingsVisible ? "chevron-up" : "chevron-forward"} size={18} color={theme.muted} />
     </Pressable>

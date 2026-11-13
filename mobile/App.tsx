@@ -2,7 +2,7 @@ import { TimeThemeContext, timeThemes, useSceneTheme } from "./src/timeTheme";
 import { useEffect, useRef, useState } from "react";
 import { useFonts } from "expo-font";
 import { fontAssets } from "./src/typography";
-import { ActivityIndicator, BackHandler, Linking, Platform, Pressable, RefreshControl, ScrollView, Share, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
+import { ActivityIndicator, Alert, BackHandler, Linking, Platform, Pressable, RefreshControl, ScrollView, Share, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import { Text } from "./src/typography";
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -39,6 +39,9 @@ import { storeName } from "./src/distribution";
 import { useAppUpdates } from "./src/useAppUpdates";
 import { setAnalyticsEnabled, trackEvent } from "./src/analytics";
 import { WeatherAd, setAdPersonalization } from "./src/WeatherAd";
+import { MorningOffer } from "./src/MorningOffer";
+import { cancelMorningAdvice, requestMorningAdvice, scheduleMorningAdvice, useMorningAdviceOpen } from "./src/morningAdvice";
+import { defaultMorningTime, isMorningTime, type MorningTime } from "../src/lib/morning";
 import { appVersion } from "../src/lib/appInfo";
 import { UpdateCard } from "./src/UpdateCard";
 import { sceneModes, cityPhotoCredits, type SceneMode } from "./src/CityBackdrop";
@@ -59,6 +62,8 @@ interface Preferences extends OutfitPreferences {
   cityBackground: boolean;
   weatherMotion: boolean;
   sceneMode: SceneMode;
+  morningAdvice: boolean;
+  morningTime: MorningTime;
 }
 const initial: Preferences = {
   ...defaultOutfitPreferences,
@@ -72,6 +77,8 @@ const initial: Preferences = {
   cityBackground: true,
   weatherMotion: true,
   sceneMode: "auto",
+  morningAdvice: false,
+  morningTime: defaultMorningTime,
 };
 const tabs: [Tab, string, keyof typeof Ionicons.glyphMap][] = [
   ["weather", "Погода", "partly-sunny-outline"],
@@ -105,12 +112,20 @@ function Atmos(): React.JSX.Element {
   const [searchVisible, setSearchVisible] = useState(false);
   const [locating, setLocating] = useState(false);
   const [notice, setNotice] = useState("");
+  const [returning, setReturning] = useState(false);
+  const [morningOfferDismissed, setMorningOfferDismissed] = useState(true);
+  const [morningBusy, setMorningBusy] = useState(false);
   const { forecast, loading, stale, error, refresh } = useForecast(city);
   const sceneTheme = useSceneTheme(forecast, preferences.sceneMode);
   const theme = onboarding ? timeThemes.morning : tab === "settings" ? timeThemes.day : sceneTheme;
   const cityPhoto = useCityPhoto(city, preferences.cityBackground && !!city && !cityPhotoKey(city));
   const updates = useAppUpdates(hydrated && !onboarding);
   const reviews = useReviews(!!forecast && !stale && !loading, hydrated && !onboarding && !outfitSetupVisible && !comfortVisible && !searchVisible && !locating && !updates.state.visible && !updates.busy, tab === "outfit" && !error);
+  useMorningAdviceOpen(() => {
+    trackEvent("morning_advice_opened");
+    setPeriod("day");
+    setTab("outfit");
+  });
   useEffect(() => {
     if (hydrated) setAnalyticsEnabled(true);
   }, [hydrated]);
@@ -129,6 +144,15 @@ function Atmos(): React.JSX.Element {
   useEffect(() => {
     if (forecast && hydrated && !onboarding) void syncWidgets(forecast, { ...preferences, comfortOffset: activeComfortOffset(comfort, forecast.current.time.slice(0, 10)) }, stale);
   }, [forecast, hydrated, preferences, stale, comfort, onboarding]);
+  useEffect(() => {
+    if (!forecast || !hydrated || onboarding) return;
+    const { gender, occasion, warmth, fahrenheit, morningAdvice, morningTime } = preferences;
+    void scheduleMorningAdvice(forecast, { gender, occasion, warmth, fahrenheit, morningAdvice, morningTime, comfortOffset: activeComfortOffset(comfort, forecast.current.time.slice(0, 10)) });
+  }, [forecast, hydrated, onboarding, comfort, preferences.gender, preferences.occasion, preferences.warmth, preferences.fahrenheit, preferences.morningAdvice, preferences.morningTime]);
+  const morningOfferVisible = Platform.OS === "android" && hydrated && returning && !onboarding && !preferences.morningAdvice && !morningOfferDismissed && !!forecast && !stale;
+  useEffect(() => {
+    if (morningOfferVisible) trackEvent("morning_offer_shown");
+  }, [morningOfferVisible]);
 
   useEffect(() => {
     const listener = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -144,13 +168,14 @@ function Atmos(): React.JSX.Element {
     let alive = true;
     /** @returns {Promise<void>} Проверяет сохранённые настройки перед первым запросом прогноза. */
     async function restore(): Promise<void> {
-      const [savedCity, savedPreferences, savedFavorites, setupDone, savedComfort, savedOutfitSetup] = await Promise.all([
+      const [savedCity, savedPreferences, savedFavorites, setupDone, savedComfort, savedOutfitSetup, offerDismissed] = await Promise.all([
         read<unknown>("atmos-native-city", initialWebCity() ?? CITIES[2]),
         read<Partial<Preferences> | null>("atmos-native-preferences", null),
         read<unknown>("atmos-native-favorites", legacyWebValue<unknown>("atmos-favorites", [])),
         read<boolean>("atmos-native-onboarding-done", false),
         read<ComfortHistory | null>("atmos-native-comfort", null),
         read<boolean>("atmos-native-outfit-setup-done", false),
+        read<boolean>("atmos-native-morning-offer-dismissed", false),
       ]);
       if (!alive) return;
       const saved =
@@ -176,7 +201,11 @@ function Atmos(): React.JSX.Element {
         cityBackground: saved.cityBackground !== false,
         weatherMotion: saved.weatherMotion !== false,
         sceneMode: sceneModes.some(([mode]) => mode === saved.sceneMode) ? saved.sceneMode! : "auto",
+        morningAdvice: saved.morningAdvice === true,
+        morningTime: isMorningTime(saved.morningTime) ? saved.morningTime : defaultMorningTime,
       });
+      setReturning(setupDone || !!savedPreferences);
+      setMorningOfferDismissed(offerDismissed);
       setFavorites(
         Array.isArray(savedFavorites)
           ? savedFavorites.filter(isCity).slice(0, 20)
@@ -225,6 +254,39 @@ function Atmos(): React.JSX.Element {
   function update(change: Partial<Preferences>): void {
     if (change.warmth && change.warmth !== preferences.warmth) { setComfort(null); void write("atmos-native-comfort", null); }
     setPreferences((value) => ({ ...value, ...change }));
+  }
+  /** @param {boolean} tracked - Отправить событие отказа. @returns {Promise<void>} Больше не показывает предложение утреннего совета на этом устройстве. */
+  async function dismissMorningOffer(tracked = true): Promise<void> {
+    setMorningOfferDismissed(true);
+    if (tracked) trackEvent("morning_offer_dismissed");
+    await write("atmos-native-morning-offer-dismissed", true);
+  }
+  /** @param {boolean} enabled - Запрошенное состояние. @param {"offer" | "settings"} origin - Где пользователь сделал выбор. @returns {Promise<void>} Включает утренний совет только после системного разрешения Android. */
+  async function changeMorningAdvice(enabled: boolean, origin: "offer" | "settings"): Promise<void> {
+    if (!enabled) {
+      update({ morningAdvice: false });
+      void cancelMorningAdvice();
+      trackEvent("morning_advice_disabled");
+      return;
+    }
+    if (morningBusy) return;
+    setMorningBusy(true);
+    try {
+      const granted = await requestMorningAdvice();
+      if (origin === "offer") void dismissMorningOffer(false);
+      if (!granted) {
+        trackEvent("morning_advice_denied", { origin });
+        Alert.alert("Уведомления выключены", "Чтобы получать утренний совет, разрешите уведомления для приложения в настройках Android.", [
+          { text: "Не сейчас", style: "cancel" },
+          { text: "Открыть настройки", onPress: () => { void Linking.openSettings().catch(() => undefined); } },
+        ]);
+        return;
+      }
+      update({ morningAdvice: true });
+      trackEvent("morning_advice_enabled", { origin });
+    } finally {
+      setMorningBusy(false);
+    }
   }
   /** @param {boolean} skipped - Пользователь пропустил краткую настройку. @returns {Promise<void>} Сохраняет завершение настройки и открывает прогноз без повторного приветствия. */
   async function finishOnboarding(skipped: boolean): Promise<void> {
@@ -358,6 +420,7 @@ function Atmos(): React.JSX.Element {
         ? `На вечер — ${eveningOutfit.pieces.outer.toLocaleLowerCase("ru")}`
         : `На вечер — ${eveningOutfit.pieces.upper.toLocaleLowerCase("ru")}`;
   const immersiveWeather = tab === "weather" && !!forecast && !notice && !error;
+  const morningOffer = morningOfferVisible ? <MorningOffer time={preferences.morningTime} busy={morningBusy} onAccept={() => void changeMorningAdvice(true, "offer")} onDismiss={() => void dismissMorningOffer()} /> : null;
 
   if ((onboarding || outfitSetupVisible) && hydrated) return <TimeThemeContext.Provider value={timeThemes.morning}>
     <FirstRun context={outfitSetupVisible ? "outfit" : "welcome"} city={city} gender={preferences.gender} warmth={preferences.warmth} saving={onboardingSaving} error={notice} onCity={() => setSearchVisible(true)} onGender={(gender) => update({ gender })} onWarmth={(warmth) => update({ warmth })} onDone={(skipped) => void finishOnboarding(skipped)} />
@@ -401,7 +464,7 @@ function Atmos(): React.JSX.Element {
           </View>
         ) : null}
         {tab !== "settings" && !forecast && <ForecastLoading pending={loading || !hydrated} />}
-        {tab === "weather" && forecast && <WeatherHome forecast={forecast} advice={advice} gender={preferences.gender} occasion={preferences.occasion} period={period} eveningHour={eveningHour} eveningHint={eveningHint} fahrenheit={preferences.fahrenheit} background={preferences.cityBackground} sceneMode={preferences.sceneMode} photo={cityPhoto} stale={stale} dayIndex={dayIndex} hours={selectedHours} wide={wide} sceneVisible={heroVisible && !searchVisible && !comfortVisible && !reviews.visible && !updates.state.visible} motionEnabled={preferences.weatherMotion} topInset={immersiveWeather ? insets.top : 0} onHeroHeight={measureHero} onCity={() => setSearchVisible(true)} comfortAnswered={comfort?.day === forecast.current.time.slice(0, 10)} onComfort={() => { trackEvent("comfort_prompt_opened"); setComfortVisible(true); }} onOutfit={() => setTab("outfit")} onDay={setDayIndex} onShare={() => void share()} onSource={(url) => void openLink(url)} />}
+        {tab === "weather" && forecast && <WeatherHome forecast={forecast} advice={advice} gender={preferences.gender} occasion={preferences.occasion} period={period} eveningHour={eveningHour} eveningHint={eveningHint} fahrenheit={preferences.fahrenheit} background={preferences.cityBackground} sceneMode={preferences.sceneMode} photo={cityPhoto} stale={stale} dayIndex={dayIndex} hours={selectedHours} wide={wide} sceneVisible={heroVisible && !searchVisible && !comfortVisible && !reviews.visible && !updates.state.visible} motionEnabled={preferences.weatherMotion} topInset={immersiveWeather ? insets.top : 0} onHeroHeight={measureHero} onCity={() => setSearchVisible(true)} comfortAnswered={comfort?.day === forecast.current.time.slice(0, 10)} onComfort={() => { trackEvent("comfort_prompt_opened"); setComfortVisible(true); }} onOutfit={() => setTab("outfit")} onDay={setDayIndex} onShare={() => void share()} onSource={(url) => void openLink(url)} offer={morningOffer} ad={hydrated ? <WeatherAd personalizedAds={preferences.personalizedAds} /> : null} />}
         {tab === "outfit" && advice && forecast && (
           <OutfitScreen forecast={forecast} advice={advice} period={period} gender={preferences.gender} occasion={preferences.occasion} fahrenheit={preferences.fahrenheit} eveningHour={eveningHour} eveningHint={eveningHint} onPeriodChange={setPeriod} onGenderChange={(gender) => update({ gender })}>
             <OutfitCustomization advice={advice} gender={preferences.gender} occasion={preferences.occasion} warmth={preferences.warmth} onOccasionChange={(occasion) => update({ occasion })} onWarmthChange={(warmth) => update({ warmth })} onOpen={openLink} />
@@ -417,6 +480,7 @@ function Atmos(): React.JSX.Element {
           onFeedback={() => void openLink("mailto:aurelio3@mail.ru?subject=" + encodeURIComponent("Погода и что надеть — обратная связь"))}
           onRate={() => void reviews.rate().catch(() => setNotice(`Не удалось открыть ${storeName}. Попробуйте позже.`))}
           reviewsEnabled={!reviews.disabled} onReviewsChange={(enabled) => void reviews.dismiss(!enabled)}
+          morningBusy={morningBusy} onMorningAdvice={(enabled) => void changeMorningAdvice(enabled, "settings")}
         >
               {cityPhoto && <View><Text style={s.caption}>{cityPhoto.author} · {cityPhoto.title}. В оформлении применены кадрирование и затемнение.</Text><View style={s.wrap}><Chip label="Источник фото ↗" onPress={() => void openLink(cityPhoto.source)} /><Chip label={cityPhoto.license} onPress={() => void openLink(cityPhoto.licenseUrl)} /></View></View>}
               {cityPhotoCredits.map((photo) => (
@@ -462,7 +526,6 @@ function Atmos(): React.JSX.Element {
           </Text>
         )}
         {forecast && tab === "outfit" && Platform.OS === "web" && <Chip label={loading ? "Обновляем…" : "Обновить прогноз"} onPress={refresh} />}
-        {tab === "weather" && forecast && hydrated && <WeatherAd personalizedAds={preferences.personalizedAds} />}
         {tab === "weather" && forecast && Platform.OS === "web" && <View style={{ paddingHorizontal: 18, paddingBottom: 14 }}><Chip label={loading ? "Обновляем…" : "Обновить прогноз"} onPress={refresh} /></View>}
       </ScrollView>
       {immersiveWeather && !heroVisible && <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top, backgroundColor: theme.page, zIndex: 10 }} />}

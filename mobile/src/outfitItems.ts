@@ -1,6 +1,12 @@
 import type { OutfitAdvice, OutfitOccasion } from "../../src/lib/outfit";
 import { outfitPhotoItems, type ClothingPhoto } from "./OutfitPreview";
 import { accessoryPhoto, upperPhoto } from "./wardrobeSelection";
+import { isPartnerTemplate, partnerLink } from "../../src/lib/partnerLinks";
+
+// Шаблоны партнёрских ссылок задаются при сборке (EXPO_PUBLIC_OZON_LINK, EXPO_PUBLIC_WB_LINK) с местом {url}.
+// Пока они не заданы, кнопки открывают обычный поиск без комиссии.
+const partnerTemplates = { ozon: process.env.EXPO_PUBLIC_OZON_LINK, wb: process.env.EXPO_PUBLIC_WB_LINK };
+export const partnerLinksEnabled = isPartnerTemplate(partnerTemplates.ozon) || isPartnerTemplate(partnerTemplates.wb);
 
 export interface OutfitItem { label: string; text: string; photo?: ClothingPhoto }
 
@@ -17,8 +23,9 @@ export function outfitItems(advice: OutfitAdvice, gender: "woman" | "man", occas
   ];
 }
 
-/** @param {string} store - Магазин. @param {string} item - Название вещи. @param {string} gender - Вариант одежды. @returns {string} Обычная поисковая ссылка без партнёрских параметров. */
+/** @param {string} store - Магазин. @param {string} item - Название вещи. @param {string} gender - Вариант одежды. @returns {string} Поиск в магазине; через партнёрскую ссылку, только если она задана при сборке. */
 export function outfitSearchUrl(store: "ozon" | "wb", item: string, gender: "woman" | "man"): string {
   const query = encodeURIComponent(`${item} ${gender === "woman" ? "женские" : "мужские"}`);
-  return store === "ozon" ? `https://www.ozon.ru/search/?text=${query}` : `https://www.wildberries.ru/catalog/0/search.aspx?search=${query}`;
+  const url = store === "ozon" ? `https://www.ozon.ru/search/?text=${query}` : `https://www.wildberries.ru/catalog/0/search.aspx?search=${query}`;
+  return partnerLink(partnerTemplates[store], url);
 }
