@@ -26,6 +26,8 @@ export interface OutfitAdvice {
   items: string[];
   note: string;
   rain: boolean;
+  /** Осадки выпадают снегом: по коду погоды или фактической температуре, а не по ощущениям. */
+  snow: boolean;
   feels: number;
   wind: number;
 }
@@ -91,6 +93,12 @@ function hasPrecipitation(code: number): boolean {
   return (code >= 51 && code <= 86) || code >= 95;
 }
 
+/** @param {Hour} hour - Час прогноза. @returns {boolean} Осадки этого часа ожидаются снегом или ледяным дождём. */
+function snowyHour(hour: Hour): boolean {
+  const wet = hour.rain >= 0.3 || hasPrecipitation(hour.code);
+  return wet && ((hour.code >= 71 && hour.code <= 77) || hour.code === 85 || hour.code === 86 || hour.temperature <= 0.5);
+}
+
 /** @param {number} feels - Температура по ощущениям. @param {WarmthPreference} preference - Чувствительность к холоду. @returns {number} Температура для выбора слоёв. */
 function comfortTemperature(feels: number, preference: WarmthPreference): number {
   return feels + (preference === "warmer" ? -4 : preference === "lighter" ? 4 : 0);
@@ -102,7 +110,7 @@ function flattenPieces(pieces: OutfitPieces): string[] {
 }
 
 /** @param {number} feels - Температура по ощущениям. @param {number} wind - Ветер. @param {boolean} rain - Осадки. @param {string} note - Объяснение. @param {OutfitPreferences} preferences - Стиль и комфорт. @returns {OutfitAdvice} Комплект одежды. */
-function buildOutfit(feels: number, wind: number, rain: boolean, note: string, preferences: OutfitPreferences): OutfitAdvice {
+function buildOutfit(feels: number, wind: number, rain: boolean, note: string, preferences: OutfitPreferences, snow = false): OutfitAdvice {
   const comfort = comfortTemperature(feels, preferences.warmth) - Math.max(-3, Math.min(3, preferences.comfortOffset || 0));
   let style: OutfitStyle;
   let title: string;
@@ -123,9 +131,9 @@ function buildOutfit(feels: number, wind: number, rain: boolean, note: string, p
   if (style === "frost") pieces.accessories.push("Термослой для ног", "Тёплые носки");
   if (style === "heat") pieces.accessories.push("Лёгкий головной убор");
   if (rain && feels <= 0) pieces.shoes = "Непромокаемые зимние ботинки";
-  if (rain && feels > 0 && preferences.occasion !== "sport") pieces.accessories.push("Зонт");
+  if (rain && !snow && preferences.occasion !== "sport") pieces.accessories.push("Зонт");
   if (wind >= 25 && comfort > 2 && comfort < 15 && !pieces.accessories.includes("Шарф")) pieces.accessories.push("Снуд");
-  return { style, title, pieces, items: flattenPieces(pieces), note, rain, feels, wind };
+  return { style, title, pieces, items: flattenPieces(pieces), note, rain, snow: rain && snow, feels, wind };
 }
 
 /** @param {Hour} hour - Погода в начале выхода. @param {OutfitPreferences} preferences - Стиль и комфорт. @param {Hour | undefined} nextHour - Погода к концу ближайшего часа. @returns {OutfitAdvice} Комплект с учётом похолодания и осадков за прогулку. */
@@ -139,7 +147,8 @@ export function outfitForHour(hour: Hour, preferences: OutfitPreferences = defau
   if (next && next.feels < hour.feels - 1) reasons.push(`к концу часа ${Math.round(next.feels)}°`);
   if (rain) reasons.push("возможны осадки");
   if (wind >= 18) reasons.push(`ветер ${windSpeed(wind)} м/с`);
-  const advice = buildOutfit(feels, wind, rain, `${reasons.join(", ")}.`, preferences);
+  const snow = snowyHour(hour) || !!next && snowyHour(next);
+  const advice = buildOutfit(feels, wind, rain, `${reasons.join(", ")}.`, preferences, snow);
   if (!rain && wind >= 18 && advice.style === "mild" && preferences.occasion !== "office") {
     advice.pieces.outer = preferences.gender === "woman" ? "Ветрозащитная куртка женского кроя" : "Куртка от ветра";
     advice.items = flattenPieces(advice.pieces);
@@ -159,7 +168,7 @@ export function outfitForDay(day: Day, hours: Hour[], fallback: Hour, preference
   if (rain) reasons.push("возможны осадки");
   if (wind >= 25) reasons.push(`ветер до ${windSpeed(wind)} м/с`);
   const layers = max - min >= 9 && max >= 20 && min < 15;
-  const advice = buildOutfit(min, wind, rain, `${reasons.join(", ")}.${layers ? " Верхний слой можно снять при потеплении." : ""}`, preferences);
+  const advice = buildOutfit(min, wind, rain, `${reasons.join(", ")}.${layers ? " Верхний слой можно снять при потеплении." : ""}`, preferences, span.some(snowyHour));
   if (layers) advice.title = "Одевайтесь слоями";
   return advice;
 }

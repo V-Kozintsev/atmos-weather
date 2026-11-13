@@ -17,7 +17,7 @@ export function OutfitCard({ advice, gender, occasion, period, evening, eveningT
   const { fontScale } = useWindowDimensions();
   const stacked = width < 270 || fontScale > 1.3;
   const artworkSize = Math.min(compact ? 142 : 154, Math.max(130, width * .44));
-  const title = advice.rain ? advice.feels <= 0 ? "Защита от снега" : "На случай дождя" : ["heat", "warm"].includes(advice.style) ? "Сегодня налегке" : advice.style === "mild" ? "Лёгкий слой" : "Тёплые слои";
+  const title = advice.rain ? advice.snow ? "Защита от снега" : "На случай дождя" : ["heat", "warm"].includes(advice.style) ? "Сегодня налегке" : advice.style === "mild" ? "Лёгкий слой" : "Тёплые слои";
   /** @param {LayoutChangeEvent} event - Фактическая ширина карточки внутри колонки. @returns {void} Перестраивает композицию при узкой карточке, сохраняя читаемость текста. */
   function measure(event: LayoutChangeEvent): void { setWidth(event.nativeEvent.layout.width); }
   /** @param {PressableStateCallbackType} state - Состояние касания. @returns {StyleProp<ViewStyle>} Отзыв карточки на нажатие. */

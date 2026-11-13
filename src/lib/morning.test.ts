@@ -31,7 +31,7 @@ describe("morning advice", () => {
   it("ignores the cold night hours and warns about rain", () => {
     const message = morningMessage(forecast, "2026-11-14", preferences);
     expect(message?.title).toContain("6°");
-    expect(message?.body.startsWith("Возможны осадки.")).toBe(true);
+    expect(message?.body.startsWith("Возможен дождь.")).toBe(true);
     expect(message?.body).toContain("зонт");
   });
   it("skips days without hourly data", () => {

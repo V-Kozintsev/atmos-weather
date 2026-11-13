@@ -30,7 +30,7 @@ export function morningMessage(forecast: Forecast, date: string, preferences: Ou
   const low = temperature(Math.min(...hours.map((hour) => hour.feels)), fahrenheit);
   const high = temperature(Math.max(...hours.map((hour) => hour.feels)), fahrenheit);
   const range = low === high ? `${low}°` : `от ${low}° до ${high}°`;
-  const sky = advice.rain ? "Возможны осадки" : advice.wind >= 25 ? "Ветрено" : condition(day.code);
+  const sky = advice.snow ? "Возможен снег" : advice.rain ? "Возможен дождь" : advice.wind >= 25 ? "Ветрено" : condition(day.code);
   const { outer, upper, lower, shoes, accessories } = advice.pieces;
   const items = [outer, upper, lower, shoes, ...accessories].filter((item): item is string => Boolean(item)).map(inline);
   return {

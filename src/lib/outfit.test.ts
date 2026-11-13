@@ -12,6 +12,17 @@ const hour: Hour = {
 };
 
 describe("outfit advice", () => {
+  it("treats cold rain above freezing as rain, not snow, and keeps the umbrella", () => {
+    const advice = outfitForHour({ ...hour, temperature: 4, feels: -3, rain: 0.6, code: 61, wind: 22 });
+    expect(advice.rain).toBe(true);
+    expect(advice.snow).toBe(false);
+    expect(advice.pieces.accessories).toContain("Зонт");
+  });
+  it("marks snow by the weather code or a sub-zero air temperature", () => {
+    expect(outfitForHour({ ...hour, temperature: 1, feels: -4, rain: 0.4, code: 73 }).snow).toBe(true);
+    expect(outfitForHour({ ...hour, temperature: -2, feels: -7, rain: 0.4, code: 61 }).snow).toBe(true);
+    expect(outfitForHour({ ...hour, temperature: -2, feels: -7, rain: 0.4, code: 73 }).pieces.accessories).not.toContain("Зонт");
+  });
   it("keeps a warmer layer for cooling during the next hour", () => {
     const advice = outfitForHour({ ...hour, feels: 23 }, undefined, { ...hour, time: "2026-09-30T14:00", feels: 18 });
     expect(advice.style).toBe("mild");

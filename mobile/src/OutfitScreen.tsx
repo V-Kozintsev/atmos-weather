@@ -25,9 +25,9 @@ export function OutfitScreen({ forecast, advice, period, gender, occasion, fahre
   const stackedToolbar = width < 350 || fontScale > 1.25;
   const heroSize = Math.min(width - 36, 640);
   const late = Number(forecast.current.time.slice(11, 13)) >= 16;
-  const title = advice.rain ? advice.feels <= 0 ? "Защита от снега" : "На случай дождя" : ["heat", "warm"].includes(advice.style) ? "Сегодня налегке" : advice.style === "mild" ? late ? "Лёгкий слой на вечер" : "Лёгкий слой на день" : "Тёплые слои";
+  const title = advice.rain ? advice.snow ? "Защита от снега" : "На случай дождя" : ["heat", "warm"].includes(advice.style) ? "Сегодня налегке" : advice.style === "mild" ? late ? "Лёгкий слой на вечер" : "Лёгкий слой на день" : "Тёплые слои";
   const outer = advice.pieces.outer || "";
-  const description = advice.rain ? advice.feels <= 0 ? "Тёплая одежда и обувь с защитой от снега." : "Непромокаемый слой и закрытая обувь." : /ветр/.test(outer) ? "Ветрозащитный слой пригодится уже сейчас." : ["cold", "frost"].includes(advice.style) ? "Тёплые слои для холодной погоды." : outer ? "Верхний слой можно снять, когда станет теплее." : "Лёгкий комплект для тёплой погоды.";
+  const description = advice.rain ? advice.snow ? "Тёплая одежда и обувь с защитой от снега." : "Непромокаемый слой и закрытая обувь." : /ветр/.test(outer) ? "Ветрозащитный слой пригодится уже сейчас." : ["cold", "frost"].includes(advice.style) ? "Тёплые слои для холодной погоды." : outer ? "Верхний слой можно снять, когда станет теплее." : "Лёгкий комплект для тёплой погоды.";
   const evening = eveningHour ? `К вечеру ${temperature(eveningHour.feels, fahrenheit)}° — ${eveningHint.replace(/^На вечер\s*—\s*/i, "")}` : eveningHint;
   return <View style={styles.screen}>
     <View style={[styles.toolbar, stackedToolbar && styles.toolbarStacked]}>
