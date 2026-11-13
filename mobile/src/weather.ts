@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import { parseMetForecast, type MetResponse } from "../../src/lib/met";
+import { requestMetForecast } from "../../src/lib/metRequest";
 import { isCity, type City, type Forecast } from "../../src/lib/weather";
 import rows from "../../public/cities.json";
 import countryNames from "./countryNames.json";
@@ -25,9 +25,11 @@ export function log(event: string, detail: Record<string, unknown> = {}): void {
 }
 
 /** @param {City} city - Выбранный город. @returns {string} Ключ локального снимка. */
-function key(city: City): string {
+export function forecastCityKey(city: City): string {
   return `atmos-native-forecast:${city.latitude.toFixed(4)},${city.longitude.toFixed(4)}`;
 }
+
+const key = forecastCityKey;
 
 /** @param {unknown} value - Снимок из хранилища. @param {City} city - Ожидаемый город. @returns {boolean} Пригодность снимка не старше суток. */
 function validSnapshot(value: unknown, city: City): value is Forecast {
@@ -77,7 +79,7 @@ function validSnapshot(value: unknown, city: City): value is Forecast {
 /** @param {City} city - Выбранный город. @returns {Forecast | undefined} Последний пригодный прогноз без обращения к диску или сети. */
 export function memoryForecast(city: City): Forecast | undefined {
   const value = cache.get(key(city));
-  return value && validSnapshot(value.forecast, city) ? value.forecast : undefined;
+  return value && validSnapshot(value.forecast, city) ? { ...value.forecast, city } : undefined;
 }
 
 /** @param {City} city - Выбранный город. @returns {boolean} Сохранённый срок свежести прогноза ещё не истёк. */
@@ -95,7 +97,7 @@ export async function savedForecast(city: City): Promise<Forecast | undefined> {
     new Intl.DateTimeFormat("ru-RU", { timeZone: snapshot.timezone });
     const savedExpiry = (snapshot as Forecast & { expiresAt?: number }).expiresAt;
     cache.set(key(city), { forecast: snapshot, expires: Number.isFinite(savedExpiry) ? savedExpiry! : snapshot.fetchedAt + 600000 });
-    return snapshot;
+    return { ...snapshot, city };
   } catch {
     return undefined;
   }
@@ -110,49 +112,39 @@ export async function loadForecast(
   if (signal.aborted) throw new Error("Aborted");
   if (cached && isForecastFresh(city)) {
     log("cache hit");
-    return cached.forecast;
+    return { ...cached.forecast, city };
   }
-  const controller = new AbortController();
-  /** @returns {void} Передаёт отмену экранного запроса транспорту. */
-  const cancel = (): void => controller.abort();
-  signal.addEventListener("abort", cancel);
-  const timer = setTimeout(cancel, 12000);
   try {
-    log("request", { service: "api.met.no" });
-    const lat = Math.round(city.latitude * 10000) / 10000;
-    const lon = Math.round(city.longitude * 10000) / 10000;
-    const response = await fetch(
-      `https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=${lat}&lon=${lon}`,
-      {
-        signal: controller.signal,
-        headers:
-          Platform.OS === "web"
-            ? {}
-            : { "User-Agent": "Atmos/3.0.0 (https://puskweb.ru/)" },
-      },
-    );
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const forecast = parseMetForecast(
-      city,
-      (await response.json()) as MetResponse,
-    );
-    if (signal.aborted || controller.signal.aborted) throw new Error("Aborted");
-    const expiry = Date.parse(response.headers.get("Expires") || "");
-    const expiresAt = Number.isFinite(expiry) && expiry > Date.now() ? expiry : Date.now() + 600000;
+    const { forecast, expiresAt } = await requestMetForecast(city, signal, Platform.OS === "web" ? {} : { "User-Agent": "PuskWebWeather/3 (https://puskweb.ru/)" }, log);
     cache.set(key(city), { forecast, expires: expiresAt });
     if (cache.size > 20) cache.delete(cache.keys().next().value!);
     void write(key(city), { ...forecast, expiresAt });
-    log("ready", { status: response.status });
+    log("ready");
     return forecast;
   } catch (error) {
     log("request failed", {
       reason: error instanceof Error ? error.name : "unknown",
     });
     throw error;
-  } finally {
-    clearTimeout(timer);
-    signal.removeEventListener("abort", cancel);
   }
+}
+
+/** @param {number} latitude - Округлённая широта устройства. @param {number} longitude - Округлённая долгота устройства. @returns {City | undefined} Ближайший город в пределах 35 км из локального GeoNames; координаты устройства не передаются сторонним сервисам. */
+export function cityNearLocation(latitude: number, longitude: number): City | undefined {
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return undefined;
+  let closest: (typeof rows)[number] | undefined;
+  let distance = 35;
+  for (const row of rows) {
+    const [lat, lon] = [Number(row[3]), Number(row[4])];
+    const latDelta = (lat - latitude) * Math.PI / 180;
+    const lonDelta = (lon - longitude) * Math.PI / 180;
+    const haversine = Math.sin(latDelta / 2) ** 2 + Math.cos(latitude * Math.PI / 180) * Math.cos(lat * Math.PI / 180) * Math.sin(lonDelta / 2) ** 2;
+    const kilometers = 6371 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(Math.max(0, 1 - haversine)));
+    if (kilometers < distance) { distance = kilometers; closest = row; }
+  }
+  if (!closest) return undefined;
+  const [id, name, code, lat, lon] = closest as [string, string, string, number, number, string];
+  return { id, name, country: (countryNames as Record<string, string>)[code] || code, latitude: lat, longitude: lon };
 }
 
 /** @param {string} query - Название города. @returns {City[]} Совпадения в локальном справочнике GeoNames без внешних запросов. */

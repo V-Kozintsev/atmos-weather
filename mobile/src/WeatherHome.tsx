@@ -1,24 +1,29 @@
 import { useTimeTheme, type TimeTheme } from "./timeTheme";
 import { useState } from "react";
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { bestHour, clock, condition, temperature, weekday, windSpeed, type Forecast, type Hour } from "../../src/lib/weather";
+import { bestHour, clock, temperature, weekday, type Forecast, type Hour } from "../../src/lib/weather";
 import type { OutfitAdvice, OutfitOccasion } from "../../src/lib/outfit";
-import { CityBackdrop, type SceneMode } from "./CityBackdrop";
+import type { SceneMode } from "./CityBackdrop";
 import type { CityPhoto } from "./cityPhotos";
 import { OutfitCard } from "./OutfitCard";
 import { WeatherIcon } from "./WeatherIcon";
 import { Text } from "./typography";
+import { DailyBrief } from "./DailyBrief";
+import { ComfortIcon } from "./ComfortIcon";
+import { WeatherHero } from "./WeatherHero";
 
 interface Props {
   forecast: Forecast; advice?: OutfitAdvice; gender: "woman" | "man"; occasion: OutfitOccasion; period: "hour" | "day";
   eveningHour?: Hour; eveningHint: string; fahrenheit: boolean; background: boolean; sceneMode: SceneMode; photo: CityPhoto | null;
-  stale: boolean; favorite: boolean; dayIndex: number; hours: Hour[]; wide: boolean;
-  onFavorite: () => void; onOutfit: () => void; onDay: (index: number) => void; onShare: () => void; onRefresh: () => void; refreshing: boolean; onSource: (url: string) => void;
+  stale: boolean; dayIndex: number; hours: Hour[]; wide: boolean;
+  sceneVisible: boolean; motionEnabled: boolean; topInset: number; onHeroHeight: (height: number) => void; onCity: () => void;
+  comfortAnswered: boolean; onComfort: () => void;
+  onOutfit: () => void; onDay: (index: number) => void; onShare: () => void; onSource: (url: string) => void;
 }
 
 /** @param {Props} props - Живой прогноз, комплект одежды и действия главного экрана. @returns {React.JSX.Element} Единый экран с растворяющимся фото, открытой композицией вещей и почасовыми колонками. */
-export function WeatherHome({ forecast, advice, gender, occasion, period, eveningHour, eveningHint, fahrenheit, background, sceneMode, photo, stale, favorite, dayIndex, hours, wide, onFavorite, onOutfit, onDay, onShare, onRefresh, refreshing, onSource }: Props): React.JSX.Element {
+export function WeatherHome({ forecast, advice, gender, occasion, period, eveningHour, eveningHint, fahrenheit, background, sceneMode, photo, stale, dayIndex, hours, wide, sceneVisible, motionEnabled, topInset, onHeroHeight, onCity, comfortAnswered, onComfort, onOutfit, onDay, onShare, onSource }: Props): React.JSX.Element {
   const theme = useTimeTheme();
   const styles = createStyles(theme);
   const { width, height, fontScale } = useWindowDimensions();
@@ -37,27 +42,11 @@ export function WeatherHome({ forecast, advice, gender, occasion, period, evenin
   const hourWidth = Math.max(76 * Math.max(1, fontScale), hoursWidth / 4);
   return <View style={[styles.layout, wide && styles.wide]}>
     <View style={[styles.column, wide && styles.mainColumn]}>
-      <View style={[styles.hero, dense && styles.heroDense]}>
-        <CityBackdrop forecast={forecast} mode={sceneMode} photo={photo} photosEnabled={background} pageColor={theme.page} seamless />
-        <View style={[styles.heroContent, dense && styles.heroContentDense]}>
-          {stale && <Text style={styles.saved}>СОХРАНЁННЫЙ ПРОГНОЗ</Text>}
-          <View style={styles.reading}>
-            <View style={styles.currentCopy}>
-              <Text style={[styles.degrees, dense && styles.degreesDense]}>{degrees(forecast.current.temperature)}</Text>
-              <Text style={[styles.condition, dense && styles.conditionDense]}>{condition(forecast.current.code)}</Text>
-            </View>
-            <View style={styles.heroIcon}><WeatherIcon code={forecast.current.code} night={!forecast.current.day} size={dense ? 90 : 106} /></View>
-          </View>
-          <View style={styles.metrics}>
-            <Text style={[styles.metric, dense && styles.metricDense]}>Сегодня {degrees(day.min)} / {degrees(day.max)}</Text>
-            <Text style={[styles.metric, dense && styles.metricDense]}>Ощущается как {degrees(forecast.current.feels)}</Text>
-            <Text style={[styles.metric, dense && styles.metricDense]}>Ветер {windSpeed(forecast.current.wind)} м/с · Влажность {forecast.current.humidity}%</Text>
-          </View>
-        </View>
-        <Pressable accessibilityRole="button" accessibilityLabel={favorite ? "Убрать из избранного" : "Добавить в избранное"} onPress={onFavorite} style={styles.favorite}><Ionicons name={favorite ? "star" : "star-outline"} size={20} color="#f4e2b9" /></Pressable>
-        {Platform.OS === "web" && <Pressable accessibilityRole="button" accessibilityLabel="Обновить прогноз" disabled={refreshing} onPress={onRefresh} style={[styles.favorite, { right: 54 }]}>{refreshing ? <ActivityIndicator color="#fff" /> : <Ionicons name="refresh-outline" size={20} color="#fff" />}</Pressable>}
-      </View>
-      {advice && <View style={styles.inset}><OutfitCard advice={advice} gender={gender} occasion={occasion} period={period} evening={eveningHint} eveningTemperature={eveningHour ? degrees(eveningHour.feels) : undefined} description={outfitDescription} compact={dense} onPress={onOutfit} /></View>}
+      <WeatherHero forecast={forecast} mode={sceneMode} photo={photo} photosEnabled={background} fahrenheit={fahrenheit} stale={stale} visible={sceneVisible} motionEnabled={motionEnabled} topInset={topInset} onCity={onCity} onHeight={onHeroHeight} />
+      {advice && <View style={styles.inset}><DailyBrief forecast={forecast} advice={advice} evening={eveningHour} fahrenheit={fahrenheit} /><OutfitCard advice={advice} gender={gender} occasion={occasion} period={period} evening={eveningHint} eveningTemperature={eveningHour ? degrees(eveningHour.feels) : undefined} description={outfitDescription} compact={dense} onPress={onOutfit} />
+        <View style={styles.walk}><Ionicons name="partly-sunny-outline" size={26} color={theme.accent} /><View style={styles.walkCopy}><Text style={styles.detailTitle}>Для прогулки</Text><Text style={styles.detailText}>{walk ? `${walk.time.slice(0, 10) === day.date ? "Сегодня" : "Завтра"}, ${clock(walk.time)} · ${degrees(walk.feels)} по ощущениям` : "Погода не подходит для комфортной прогулки — проверьте ближайшие часы."}</Text></View></View>
+        <Pressable accessibilityRole="button" onPress={onComfort} style={styles.comfort}><ComfortIcon kind="comfortable" color={theme.primary} size={26} /><View style={styles.walkCopy}><Text style={styles.detailTitle}>{comfortAnswered ? "Ответ о комфорте сохранён" : "После прогулки"}</Text><Text style={styles.detailText}>{comfortAnswered ? "Учтём ваши ощущения в следующих советах · изменить" : "Как было по ощущениям? Подстроим совет под вас."}</Text></View><Ionicons name="chevron-forward" size={18} color={theme.primary} /></Pressable>
+      </View>}
     </View>
     <View style={[styles.column, styles.forecastColumn, wide && styles.forecastWide]}>
       <View style={styles.inset}>
@@ -81,8 +70,7 @@ export function WeatherHome({ forecast, advice, gender, occasion, period, evenin
             <Text style={styles.dayTemperature}>{degrees(value.min)} / {degrees(value.max)}</Text>
           </Pressable>)}
           <View style={styles.details}>
-            <Text style={styles.detailTitle}>Время для прогулки</Text>
-            <Text style={styles.detailText}>{walk ? `${walk.time.slice(0, 10) === day.date ? "Сегодня" : "Завтра"}, ${clock(walk.time)} · ${degrees(walk.feels)} по ощущениям · ветер ${windSpeed(walk.wind)} м/с` : "В ближайшие часы нет комфортного дневного периода по нашим правилам."}</Text>
+            <Text style={styles.detailText}>Сегодня {degrees(day.min)} / {degrees(day.max)} · Влажность {forecast.current.humidity}%</Text>
             <Text style={styles.detailText}>Восход {clock(day.sunrise) || "—"} · Закат {clock(day.sunset) || "—"}</Text>
             <Text style={styles.source}>Время города · {forecast.timezone}</Text>
             <Text style={styles.source}>{stale ? "Сохранено" : "Обновлено"} {new Date(forecast.fetchedAt).toLocaleTimeString("ru-RU", { timeZone: forecast.timezone, hour: "2-digit", minute: "2-digit" })}</Text>
@@ -104,22 +92,9 @@ const createStyles = (theme: TimeTheme) => StyleSheet.create({
   forecastColumn: { paddingTop: 14 },
   forecastWide: { flex: 1, width: "auto", paddingTop: 28 },
   inset: { paddingHorizontal: 18 },
-  hero: { position: "relative", paddingTop: 12, overflow: "hidden" },
-  heroDense: { paddingTop: 6 },
-  heroContent: { paddingHorizontal: 18, paddingTop: 15, paddingBottom: 53 },
-  heroContentDense: { paddingTop: 12, paddingBottom: 45 },
-  reading: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
-  currentCopy: { flex: 1, minWidth: 0, gap: 2 },
-  degrees: { fontSize: 84, lineHeight: 99, fontWeight: "400", letterSpacing: -5, color: "#fff" },
-  degreesDense: { fontSize: 72, lineHeight: 84 },
-  condition: { fontSize: 23, lineHeight: 28, fontWeight: "600", color: "#fff", maxWidth: 260 },
-  conditionDense: { fontSize: 20, lineHeight: 25 },
-  heroIcon: { paddingTop: 26, paddingRight: 2 },
-  metrics: { gap: 2, paddingTop: 13 },
-  metric: { color: "#fff", fontSize: 14, lineHeight: 21 },
-  metricDense: { fontSize: 12, lineHeight: 18 },
-  saved: { fontSize: 10, lineHeight: 16, fontWeight: "700", letterSpacing: 1.2, color: "#fff", marginBottom: 5 },
-  favorite: { position: "absolute", right: 10, top: 9, width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  walk: { flexDirection: "row", gap: 12, alignItems: "center", paddingVertical: 16, borderBottomWidth: 1, borderColor: theme.divider },
+  walkCopy: { flex: 1, gap: 4 },
+  comfort: { flexDirection: "row", gap: 12, alignItems: "center", paddingVertical: 16, borderBottomWidth: 1, borderColor: theme.divider },
   sectionTitle: { fontSize: 24, lineHeight: 31, fontWeight: "700", color: theme.primary, marginBottom: 13, letterSpacing: -.4 },
   sectionTitleDense: { fontSize: 22, lineHeight: 28, marginBottom: 10 },
   hours: { paddingTop: 1, paddingBottom: 13 },

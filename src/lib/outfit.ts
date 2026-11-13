@@ -8,6 +8,7 @@ export interface OutfitPreferences {
   gender?: "woman" | "man";
   occasion: OutfitOccasion;
   warmth: WarmthPreference;
+  comfortOffset?: number;
 }
 
 export interface OutfitPieces {
@@ -102,7 +103,7 @@ function flattenPieces(pieces: OutfitPieces): string[] {
 
 /** @param {number} feels - Температура по ощущениям. @param {number} wind - Ветер. @param {boolean} rain - Осадки. @param {string} note - Объяснение. @param {OutfitPreferences} preferences - Стиль и комфорт. @returns {OutfitAdvice} Комплект одежды. */
 function buildOutfit(feels: number, wind: number, rain: boolean, note: string, preferences: OutfitPreferences): OutfitAdvice {
-  const comfort = comfortTemperature(feels, preferences.warmth);
+  const comfort = comfortTemperature(feels, preferences.warmth) - Math.max(-3, Math.min(3, preferences.comfortOffset || 0));
   let style: OutfitStyle;
   let title: string;
   if (comfort >= 29) { style = "heat"; title = "Максимум лёгкости"; }

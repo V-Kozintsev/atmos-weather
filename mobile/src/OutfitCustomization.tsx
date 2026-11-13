@@ -6,9 +6,10 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import type { OutfitAdvice, OutfitOccasion, WarmthPreference } from "../../src/lib/outfit";
 import { outfitItems, outfitSearchUrl } from "./outfitItems";
 import { UnderlineTabs, type UnderlineChoice } from "./UnderlineTabs";
-import { outfitPreferenceSummary, occasionLabels, warmthLabels } from "./outfitPreferences";
+import { outfitPreferenceSummary, occasionLabels } from "./outfitPreferences";
 import { trackEvent } from "./analytics";
 import { s } from "./ui";
+import { ComfortChoices } from "./ComfortChoices";
 
 // Иконки издателей из Google Play: ru.ozon.app.android и com.wildberries.ru.
 const storeLogos = { Ozon: require("../assets/brands/ozon.webp"), WB: require("../assets/brands/wildberries.webp") };
@@ -17,7 +18,6 @@ const occasions: UnderlineChoice<OutfitOccasion>[] = [
   { value: "office", label: occasionLabels.office, icon: "briefcase-outline" },
   { value: "sport", label: occasionLabels.sport, icon: "walk-outline", weight: 1.2 },
 ];
-const temperatures: WarmthPreference[] = ["warmer", "balanced", "lighter"];
 
 /** @param {object} props - Чувствительность к холоду и обработчик выбора. @returns {React.JSX.Element} Доступная шкала с тремя именованными положениями без заливки сегментов. */
 function WarmthScale({ value, onChange }: { value: WarmthPreference; onChange: (next: WarmthPreference) => void }): React.JSX.Element {
@@ -25,13 +25,7 @@ function WarmthScale({ value, onChange }: { value: WarmthPreference; onChange: (
   const styles = createStyles(theme);
   return <View style={styles.group}>
     <Text style={styles.groupLabel}>Как вы переносите холод</Text>
-    <View style={styles.scale} accessibilityRole="radiogroup" accessibilityLabel="Чувствительность к холоду">
-      <View pointerEvents="none" style={styles.scaleLine} />
-      {temperatures.map((option) => <Pressable key={option} accessibilityRole="radio" accessibilityLabel={warmthLabels[option]} accessibilityState={{ checked: value === option }} onPress={() => onChange(option)} style={styles.scaleChoice}>
-        <View style={[styles.dotRing, value === option && styles.dotRingSelected]}>{value === option && <View style={styles.dot} />}</View>
-        <Text style={[styles.scaleLabel, value === option && styles.scaleLabelSelected]}>{warmthLabels[option]}</Text>
-      </Pressable>)}
-    </View>
+    <ComfortChoices value={value} onChange={onChange} />
     <Text style={styles.hint}>Подберём слои с учётом вашего комфорта.</Text>
   </View>;
 }

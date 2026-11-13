@@ -1,7 +1,21 @@
-const { withAppBuildGradle, withProjectBuildGradle, withAndroidManifest } = require("expo/config-plugins");
+const { withAppBuildGradle, withProjectBuildGradle, withAndroidManifest, withAndroidStyles, withAndroidColors } = require("expo/config-plugins");
 
 /** @param {object} config - Конфигурация Expo. @returns {object} Android с отдельным тестовым приложением и обязательной подписью релиза. */
 module.exports = function withAtmosAndroid(config) {
+  config = withAndroidColors(config, (mod) => {
+    const colors = mod.modResults.resources.color || [];
+    mod.modResults.resources.color = [...colors.filter((entry) => entry.$.name !== "splashscreen_background"), { $: { name: "splashscreen_background" }, _: "#eef1eb" }];
+    return mod;
+  });
+  config = withAndroidStyles(config, (mod) => {
+    for (const style of mod.modResults.resources.style || []) {
+      if (!["AppTheme", "Theme.App.SplashScreen"].includes(style.$.name)) continue;
+      const items = style.item || [];
+      // A bitmap as windowBackground is stretched by Android before React draws its first frame.
+      style.item = [...items.filter((item) => item.$.name !== "android:windowBackground"), { $: { name: "android:windowBackground" }, _: "@color/splashscreen_background" }];
+    }
+    return mod;
+  });
   config = withAndroidManifest(config, (mod) => {
     const application = mod.modResults.manifest.application[0];
     const key = "com.yandex.mobile.ads.AUTOMATIC_SDK_INITIALIZATION";

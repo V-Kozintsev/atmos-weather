@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Image, StyleSheet, View, useWindowDimensions } from "react-native";
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from "react-native-svg";
 import { Text, fontNames } from "./typography";
@@ -9,10 +10,15 @@ export function ForecastLoading({ pending }: { pending: boolean }): React.JSX.El
   const { height } = useWindowDimensions();
   const compact = height < 740;
   const mutedFill = theme.dark ? "#354850" : "#d5ddd3";
+  const [showArtwork, setShowArtwork] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setShowArtwork(true), 400);
+    return () => clearTimeout(timer);
+  }, []);
   return <View style={styles.container}>
     <View pointerEvents="none" accessible={false} style={[styles.atmosphere, { height: compact ? 140 : 190 }]}>
       <Svg width="100%" height="100%" viewBox="0 0 360 190" preserveAspectRatio="none"><Defs><RadialGradient id="forecastWaitingSky"><Stop offset="0" stopColor={theme.dark ? "#517383" : "#add6e9"} stopOpacity=".65" /><Stop offset="1" stopColor={theme.page} stopOpacity="0" /></RadialGradient></Defs><Ellipse cx="180" cy="95" rx="180" ry="95" fill="url(#forecastWaitingSky)" /></Svg>
-      <Image source={require("../assets/widget/partial.webp")} resizeMode="contain" fadeDuration={0} style={[styles.cloud, { width: compact ? 116 : 150, height: compact ? 116 : 150 }]} />
+      {showArtwork && <Image source={require("../assets/widget/partial.webp")} resizeMode="contain" fadeDuration={0} style={[styles.cloud, { width: compact ? 116 : 150, height: compact ? 116 : 150 }]} />}
     </View>
     <View style={styles.message} accessibilityRole={pending ? "progressbar" : undefined} accessibilityLabel={pending ? "Загружаем прогноз" : "Прогноз не загружен"} accessibilityState={{ busy: pending }}>
       <Text style={[styles.title, { color: theme.primary, fontSize: compact ? 25 : 28 }]}>{pending ? "Собираем прогноз" : "Прогноз пока недоступен"}</Text>

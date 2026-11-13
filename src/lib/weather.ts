@@ -6,6 +6,7 @@ export interface City {
   longitude: number;
 }
 export interface Hour {
+  symbol?: string;
   time: string;
   temperature: number;
   feels: number;
@@ -29,6 +30,7 @@ export interface Forecast {
   timezone: string;
   fetchedAt: number;
   current: {
+    symbol?: string;
     time: string;
     temperature: number;
     feels: number;

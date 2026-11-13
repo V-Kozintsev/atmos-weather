@@ -1,6 +1,6 @@
 {
   "name": "atmos-mobile",
-  "version": "3.0.3",
+  "version": "3.0.12",
   "main": "index.ts",
   "dependencies": {
     "@appmetrica/react-native-analytics": "^4.2.0",
@@ -37,7 +37,9 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "prebuild:android": "expo prebuild --platform android",
-    "build:android": "expo run:android --variant release"
+    "build:android": "expo run:android --variant release",
+    "bundle:google-play": "node scripts/build-store.cjs google-play",
+    "build:rustore": "node scripts/build-store.cjs rustore"
   },
   "private": true
 }

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Погода и что надеть",
     "slug": "atmos-weather",
-    "version": "3.0.3",
+    "version": "3.0.12",
     "orientation": "default",
     "icon": "./assets/icon-v2.png",
     "userInterfaceStyle": "light",
@@ -12,14 +12,16 @@
     },
     "android": {
       "package": "ru.puskweb.atmos",
-      "versionCode": 7,
+      "versionCode": 16,
+      "permissions": [
+        "com.google.android.gms.permission.AD_ID"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#163c49",
         "foregroundImage": "./assets/foreground-v2.png"
       },
       "blockedPermissions": [
         "android.permission.ACCESS_BACKGROUND_LOCATION",
-        "com.google.android.gms.permission.AD_ID",
         "android.permission.RECORD_AUDIO",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",

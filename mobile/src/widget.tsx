@@ -24,6 +24,7 @@ import {
   type OutfitPreferences,
 } from "../../src/lib/outfit";
 import { read, write } from "./storage";
+import { activeComfortOffset, type ComfortHistory } from "./comfortPolicy";
 import { loadForecast, savedForecast, log } from "./weather";
 import { widgetPeriod, widgetWeather, widgetWeatherLabel } from "./widgetScene";
 
@@ -164,7 +165,9 @@ export async function widgetTaskHandler(
   const saved = await read<unknown>("atmos-native-city", CITIES[2]);
   const city = isCity(saved) ? saved : CITIES[2];
   const preferences = await widgetPreferences();
+  const comfort = await read<ComfortHistory | null>("atmos-native-comfort", null);
   let forecast = await savedForecast(city);
+  preferences.comfortOffset = activeComfortOffset(comfort, forecast?.current.time.slice(0, 10) || "");
   let offline = true;
   if (forecast && props.clickAction === "REFRESH_WEATHER") props.renderWidget(<AtmosWidget forecast={forecast} preferences={preferences} offline={true} mode={mode} height={props.widgetInfo.height} width={props.widgetInfo.width} updating />);
   try {
@@ -175,6 +178,7 @@ export async function widgetTaskHandler(
   } catch {
     log("widget offline", { cached: !!forecast });
   }
+  preferences.comfortOffset = activeComfortOffset(comfort, forecast?.current.time.slice(0, 10) || "");
   props.renderWidget(
     <AtmosWidget
       forecast={forecast}

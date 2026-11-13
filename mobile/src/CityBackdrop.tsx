@@ -2,7 +2,8 @@ import { useEffect, useId, useState } from "react";
 import { Image, StyleSheet, View } from "react-native";
 import { SvgXml } from "react-native-svg";
 import type { City, Forecast } from "../../src/lib/weather";
-import type { CityPhoto } from "./cityPhotos";
+import { cityPhotoHeaders, type CityPhoto } from "./cityPhotos";
+import { weatherScenePalette, type WeatherSceneModel, type WeatherScenePeriod } from "./weatherScene";
 
 export type SceneMode = "auto" | "morning" | "day" | "evening" | "night";
 export const sceneModes: [SceneMode, string][] = [["auto", "Авто"], ["morning", "Утро"], ["day", "День"], ["evening", "Вечер"], ["night", "Ночь"]];
@@ -41,23 +42,26 @@ export function localScene(forecast: Forecast, now = Date.now()): Exclude<SceneM
 }
 
 /** @param {object} props - Прогноз и оформление. @returns {React.JSX.Element} Локальный фон с затемнением; незнакомые города получают нейтральное небо. */
-export function CityBackdrop({ forecast, mode, photo, seamless = false, photosEnabled = true, pageColor = "#f7f8f2" }: { forecast: Forecast; mode: SceneMode; photo?: CityPhoto | null; seamless?: boolean; photosEnabled?: boolean; pageColor?: string }): React.JSX.Element {
+export function CityBackdrop({ forecast, mode, photo, seamless = false, photosEnabled = true, pageColor = "#f7f8f2", atmosphere }: { forecast: Forecast; mode: SceneMode; photo?: CityPhoto | null; seamless?: boolean; photosEnabled?: boolean; pageColor?: string; atmosphere?: { scene: WeatherSceneModel; period: WeatherScenePeriod } }): React.JSX.Element {
   const gradientId = useId().replace(/:/g, "");
   const [now, setNow] = useState(Date.now());
+  const [failedPhoto, setFailedPhoto] = useState<string>();
   useEffect(() => {
+    if (atmosphere) return;
     const timer = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(timer);
-  }, []);
-  const phase = mode === "auto" ? localScene(forecast, now) : mode;
-  const [top, bottom, overlay] = palettes[phase];
+  }, [!!atmosphere]);
+  const phase = atmosphere?.period ?? (mode === "auto" ? localScene(forecast, now) : mode);
+  const [top, bottom] = atmosphere ? weatherScenePalette(atmosphere.scene, phase) : palettes[phase];
+  const overlay = palettes[phase][2];
   const key = cityPhotoKey(forecast.city);
   const sky = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 300" preserveAspectRatio="none"><defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="${top}"/><stop offset="1" stop-color="${bottom}"/></linearGradient></defs><path fill="url(#sky)" d="M0 0h680v300H0Z"/>${phase === "night" ? '<g fill="#fff" opacity=".4"><circle cx="430" cy="50" r="1.5"/><circle cx="580" cy="24" r="1"/><circle cx="640" cy="89" r="1.5"/><circle cx="355" cy="28" r="1"/></g>' : ''}<path d="M0 250Q150 216 310 253T680 230v70H0Z" fill="#183b42" opacity=".22"/></svg>`;
   return (
     <View pointerEvents="none" accessible={false} style={[StyleSheet.absoluteFill, { overflow: "hidden" }]}>
       <SvgXml xml={sky} width="100%" height="100%" />
-      {photosEnabled && (key || photo) && <Image source={key ? photos[key] : { uri: photo!.uri }} resizeMode="cover" fadeDuration={0} style={[StyleSheet.absoluteFill, { width: "100%", height: "100%", opacity: seamless ? 1 : .75 }]} />}
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: seamless ? phase === "night" ? "rgba(8,20,38,.35)" : "rgba(14,35,42,.12)" : overlay }]} />
-      {seamless && <>
+      {photosEnabled && (key || photo && failedPhoto !== photo.uri) && <Image source={key ? photos[key] : { uri: photo!.uri, headers: cityPhotoHeaders }} onError={() => { if (photo) setFailedPhoto(photo.uri); }} resizeMode="cover" fadeDuration={0} style={[StyleSheet.absoluteFill, { width: "100%", height: "100%", opacity: atmosphere ? atmosphere.scene.fog || atmosphere.scene.kind === "blizzard" ? .18 : phase === "night" ? .2 : .4 : seamless ? 1 : .75 }]} />}
+      {!atmosphere && <View style={[StyleSheet.absoluteFill, { backgroundColor: seamless ? phase === "night" ? "rgba(8,20,38,.35)" : "rgba(14,35,42,.12)" : overlay }]} />}
+      {seamless && !atmosphere && <>
         <SvgXml xml={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><defs><linearGradient id="${gradientId}scrim"><stop stop-color="#142d35" stop-opacity=".56"/><stop offset=".65" stop-color="#142d35" stop-opacity=".12"/><stop offset="1" stop-color="#142d35" stop-opacity="0"/></linearGradient></defs><path d="M0 0h100v100H0Z" fill="url(#${gradientId}scrim)"/></svg>`} width="100%" height="100%" style={StyleSheet.absoluteFill} />
         <SvgXml xml={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><defs><linearGradient id="${gradientId}fade" x1="0" y1="0" x2="0" y2="1"><stop stop-color="${pageColor}" stop-opacity="0"/><stop offset=".4" stop-color="${pageColor}" stop-opacity=".12"/><stop offset="1" stop-color="${pageColor}"/></linearGradient></defs><path d="M0 0h100v100H0Z" fill="url(#${gradientId}fade)"/></svg>`} width="100%" height={76} style={{ position: "absolute", bottom: 0 }} />
         <SvgXml xml={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><defs><linearGradient id="${gradientId}top" x1="0" y1="0" x2="0" y2="1"><stop stop-color="${pageColor}"/><stop offset="1" stop-color="${pageColor}" stop-opacity="0"/></linearGradient></defs><path d="M0 0h100v100H0Z" fill="url(#${gradientId}top)"/></svg>`} width="100%" height={22} style={{ position: "absolute", top: 0 }} />

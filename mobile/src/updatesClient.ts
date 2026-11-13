@@ -1,17 +1,34 @@
 import { NativeEventEmitter, NativeModules, Platform, type NativeModule } from "react-native";
-import type { AppUpdateInfo, InstallState } from "react-native-rustore-update/src/types";
-export type { AppUpdateInfo, InstallState };
+import type { AppUpdateInfo as RuStoreUpdateInfo, InstallState as RuStoreInstallState } from "react-native-rustore-update/src/types";
+import { isGooglePlay } from "./distribution";
+export type InstallState = Omit<RuStoreInstallState, "installStatus"> & { installStatus?: NonNullable<RuStoreInstallState["installStatus"]> | 6 | 7 };
+export type AppUpdateInfo = Omit<RuStoreUpdateInfo, "installStatus"> & { installStatus: RuStoreUpdateInfo["installStatus"] | 6 | 7; bytesDownloaded?: number; totalBytesToDownload?: number };
 
 interface UpdateSdk extends NativeModule {
   init(): void;
   getAppUpdateInfo(): Promise<AppUpdateInfo>;
+  download(): Promise<number>;
   silent(): Promise<number>;
   completeUpdate(type: number): Promise<boolean>;
 }
 // Не загружаем JS-обёртку SDK: она создаёт NativeEventEmitter даже в браузере и Expo Go.
-const sdk = Platform.OS === "android" ? NativeModules.RustoreUpdate as UpdateSdk | undefined : undefined;
+const sdk = Platform.OS === "android" ? NativeModules[isGooglePlay ? "GooglePlayUpdate" : "RustoreUpdate"] as UpdateSdk | undefined : undefined;
 let initialized = false;
 export const updatesSupported = !!sdk;
+
+/** @param {unknown} error - Ответ моста Android. @returns {number | undefined} Числовой код без передачи текста SDK или персональных данных. */
+export function updateErrorCode(error: unknown): number | undefined {
+  if (!error || typeof error !== "object") return undefined;
+  const code = Number((error as { code?: unknown }).code);
+  return Number.isInteger(code) ? code : undefined;
+}
+
+/** @param {unknown} error - Ошибка моста или таймера. @returns {string | undefined} Только известная техническая причина без произвольного текста SDK. */
+export function updateErrorReason(error: unknown): string | undefined {
+  if (!error || typeof error !== "object") return;
+  const value = "code" in error ? error.code : error instanceof Error ? error.message : undefined;
+  return typeof value === "string" && ["UPDATE_BUSY", "UPDATE_UNAVAILABLE", "UPDATE_FAILED", "UPDATE_FLOW_FAILED", "UPDATE_INTERRUPTED", "UPDATE_TIMEOUT", "UPDATE_INSTALL_FAILED"].includes(value) ? value : undefined;
+}
 
 /** @returns {UpdateSdk} Инициализированный официальный нативный SDK или ошибка неподдерживаемой среды. */
 function client(): UpdateSdk {
@@ -36,8 +53,8 @@ export function listenForUpdates(listener: (state: InstallState) => void): () =>
   return unsubscribe;
 }
 
-/** @returns {Promise<number>} После нажатия пользователем запускает фоновую загрузку с нашим интерфейсом. */
-export function downloadUpdate(): Promise<number> { return client().silent(); }
+/** @returns {Promise<number>} Запускает официальный диалог магазина, который запрашивает подтверждение и загружает обновление без ручного перехода в каталог. */
+export function downloadUpdate(): Promise<number> { return isGooglePlay ? client().silent() : client().download(); }
 
 /** @returns {Promise<boolean>} Устанавливает скачанный APK в отложенном сценарии. */
 export function installUpdate(): Promise<boolean> { return client().completeUpdate(0); }

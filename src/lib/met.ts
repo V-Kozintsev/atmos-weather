@@ -135,6 +135,7 @@ export function parseMetForecast(city: City, data: MetResponse): Forecast {
       rain: precipitation(point),
       wind: (details.wind_speed ?? 0) * 3.6,
       code: weatherCode(symbol),
+      symbol,
       day: symbol?.endsWith("_day") ?? true,
     };
   });
@@ -177,6 +178,7 @@ export function parseMetForecast(city: City, data: MetResponse): Forecast {
       direction: details.wind_from_direction ?? 0,
       pressure: details.air_pressure_at_sea_level ?? 1013,
       code: hours[0].code,
+      symbol: hours[0].symbol,
       day: hours[0].day,
     },
     hours,

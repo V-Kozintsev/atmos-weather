@@ -9,11 +9,12 @@ export async function read<T>(key: string, fallback: T): Promise<T> {
   }
 }
 
-/** @param {string} key - Ключ данных. @param {unknown} value - Сохраняемые данные. @returns {Promise<void>} Завершение сохранения. */
-export async function write(key: string, value: unknown): Promise<void> {
+/** @param {string} key - Ключ данных. @param {unknown} value - Сохраняемые данные. @param {boolean} required - Сообщить вызывающему коду о сбое обязательной записи. @returns {Promise<void>} Завершение сохранения. */
+export async function write(key: string, value: unknown, required = false): Promise<void> {
   try {
     await AsyncStorage.setItem(key, JSON.stringify(value));
-  } catch {
+  } catch (error) {
     console.warn("[Atmos Mobile] storage unavailable");
+    if (required) throw error;
   }
 }

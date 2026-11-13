@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { BackHandler, Platform, Pressable, StyleSheet, Switch, View } from "react-native";
+import { Alert, BackHandler, Linking, Platform, Pressable, StyleSheet, Switch, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Text, fontNames } from "./typography";
 import { sceneModes, type SceneMode } from "./CityBackdrop";
@@ -9,12 +9,13 @@ import { UnderlineTabs } from "./UnderlineTabs";
 import { occasionLabels, warmthLabels } from "./outfitPreferences";
 import { useTimeTheme } from "./timeTheme";
 import { WidgetSettingsPreview } from "./WidgetSettingsPreview";
+import { storeName } from "./distribution";
 
 type Glyph = keyof typeof Ionicons.glyphMap;
 type Page = "main" | "city" | "units" | "scene" | "widget" | "comfort" | "about" | "feedback";
 interface SettingsPreferences {
-  cityBackground: boolean; sceneMode: SceneMode; widgetDark: boolean; widgetAutoTheme: boolean;
-  widgetClothes: boolean; fahrenheit: boolean; diagnostics: boolean;
+  cityBackground: boolean; weatherMotion: boolean; sceneMode: SceneMode; widgetDark: boolean; widgetAutoTheme: boolean;
+  widgetClothes: boolean; fahrenheit: boolean; diagnostics: boolean; personalizedAds: boolean;
   occasion: OutfitOccasion; warmth: WarmthPreference;
 }
 interface Props {
@@ -22,7 +23,7 @@ interface Props {
   version: string; checking: boolean; onCheck: () => void; forecast?: Forecast;
   city?: City; favorites: City[]; locating: boolean;
   onCity: () => void; onLocate: () => void; onFavorite: (city: City) => void;
-  onWidget: () => void; onRate: () => void; onFeedback: () => void; reviewsEnabled: boolean;
+  onWidget: () => Promise<boolean>; onRate: () => void; onFeedback: () => void; reviewsEnabled: boolean;
   onReviewsChange: (enabled: boolean) => void; children: ReactNode;
 }
 const titles: Record<Page, string> = { main: "Настройки", city: "Город", units: "Единицы", scene: "Время суток", widget: "Виджет", comfort: "Стиль и комфорт", about: "О приложении", feedback: "Обратная связь" };
@@ -50,6 +51,31 @@ function Row({ icon, label, hint, trailing, onPress, value, onValueChange, disab
 export function SettingsScreen({ preferences: p, onChange, version, checking, onCheck, city, forecast, favorites, locating, onCity, onLocate, onFavorite, onWidget, onRate, onFeedback, reviewsEnabled, onReviewsChange, children }: Props): React.JSX.Element {
   const [page, setPage] = useState<Page>("main");
   const [help, setHelp] = useState(false);
+  const [addingWidget, setAddingWidget] = useState(false);
+
+  /** @param {boolean} enabled - Запрошенное состояние. @returns {void} Отзывает согласие сразу; включает персонализацию только после отдельного подтверждения совершеннолетнего пользователя. */
+  function changeAdPersonalization(enabled: boolean): void {
+    if (!enabled) { onChange({ personalizedAds: false }); return; }
+    Alert.alert("Реклама по интересам", "Если вам исполнилось 18 лет, вы можете разрешить Яндексу обрабатывать рекламный идентификатор устройства и рекламные события для подбора и оценки рекламы. Выбор можно изменить здесь в любой момент. Без согласия приложение и обычная реклама продолжат работать.", [
+      { text: "Отмена", style: "cancel" },
+      { text: "О данных", onPress: () => { void Linking.openURL("https://v-kozintsev.github.io/atmos-weather/privacy.html").catch(() => Alert.alert("Не удалось открыть", "Политика доступна в разделе «О приложении и данных».")); } },
+      { text: "Разрешить, мне 18+", onPress: () => onChange({ personalizedAds: true }) },
+    ], { cancelable: true });
+  }
+
+  /** @returns {Promise<void>} Передаёт подтверждение Android; при недоступности системного окна раскрывает локальную инструкцию. */
+  async function addWidget(): Promise<void> {
+    if (addingWidget) return;
+    setAddingWidget(true);
+    try {
+      const requested = await onWidget();
+      setHelp(!requested);
+    } catch {
+      setHelp(true);
+    } finally {
+      setAddingWidget(false);
+    }
+  }
   useEffect(() => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
       if (page === "main") return false;
@@ -68,6 +94,7 @@ export function SettingsScreen({ preferences: p, onChange, version, checking, on
       <Group label="ОФОРМЛЕНИЕ">
         <Row icon="sunny-outline" label="Время суток" trailing={sceneModes.find(([value]) => value === p.sceneMode)?.[1]} onPress={() => setPage("scene")} />
         <Row icon="image-outline" label="Фото города" value={p.cityBackground} onValueChange={(cityBackground) => onChange({ cityBackground })} />
+        <Row icon="sparkles-outline" label="Погодная анимация" hint="Пока открыт экран погоды" value={p.weatherMotion} onValueChange={(weatherMotion) => onChange({ weatherMotion })} />
         {Platform.OS === "android" && <Row icon="home-outline" label="Виджет" onPress={() => setPage("widget")} />}
       </Group>
       <Group label="ПРИЛОЖЕНИЕ">
@@ -81,13 +108,13 @@ export function SettingsScreen({ preferences: p, onChange, version, checking, on
       <Row icon="search-outline" label="Выбрать город" trailing={city?.name} onPress={onCity} />
       <Row icon="navigate-outline" label={locating ? "Определяем место…" : "Моё местоположение"} onPress={onLocate} disabled={locating} />
       {favorites.map((favorite) => <Row key={favorite.id} icon="star-outline" label={favorite.name} onPress={() => onFavorite(favorite)} />)}
-      <Text style={styles.note}>Добавить город в избранное можно звёздочкой на экране погоды.</Text>
+      <Text style={styles.note}>Добавляйте города в избранное звёздочкой в поиске города.</Text>
     </Group>}
     {page === "units" && <><Group label="ТЕМПЕРАТУРА">{[false, true].map((fahrenheit) => <Row key={String(fahrenheit)} icon={p.fahrenheit === fahrenheit ? "checkmark-circle-outline" : "ellipse-outline"} label={fahrenheit ? "Фаренгейты · °F" : "Цельсий · °C"} onPress={() => onChange({ fahrenheit })} />)}</Group><Text style={styles.note}>Скорость ветра показываем в метрах в секунду.</Text></>}
     {page === "scene" && <><Group label="ОФОРМЛЕНИЕ ПРИЛОЖЕНИЯ">{sceneModes.map(([sceneMode, label]) => <Row key={sceneMode} icon={p.sceneMode === sceneMode ? "checkmark-circle-outline" : "ellipse-outline"} label={label} onPress={() => onChange({ sceneMode })} />)}</Group><Text style={styles.note}>Авто — по местному времени города и закату. Меняется оформление, а не прогноз. Фото города можно включать отдельно.</Text></>}
     {page === "widget" && Platform.OS === "android" && <>
       <WidgetSettingsPreview forecast={forecast} preferences={p} />
-      <View><Row icon="add-circle-outline" label="Добавить на главный экран" hint="Нужно свободное место 3 × 2 клетки" onPress={onWidget} />
+      <View><Row icon="add-circle-outline" label={addingWidget ? "Открываем окно добавления…" : "Добавить на главный экран"} hint="Нужно свободное место 3 × 2 клетки" onPress={() => void addWidget()} disabled={addingWidget} />
         <Row icon="time-outline" label="По времени города" hint="Автоматическая смена оформления" value={p.widgetAutoTheme} onValueChange={(widgetAutoTheme) => onChange({ widgetAutoTheme })} />
         {!p.widgetAutoTheme && <Row icon="moon-outline" label="Тёмное оформление" value={p.widgetDark} onValueChange={(widgetDark) => onChange({ widgetDark })} />}
         <Row icon="shirt-outline" label="Совет по одежде" value={p.widgetClothes} onValueChange={(widgetClothes) => onChange({ widgetClothes })} />
@@ -97,8 +124,8 @@ export function SettingsScreen({ preferences: p, onChange, version, checking, on
       <Text style={styles.note}>Обновляется примерно раз в 30 минут. Android может обновлять реже для экономии заряда.</Text>
     </>}
     {page === "comfort" && <><Group label="ВАШИ ПЛАНЫ"><UnderlineTabs label="Стиль одежды" choices={Object.entries(occasionLabels).map(([value, label]) => ({ value: value as OutfitOccasion, label }))} value={p.occasion} onChange={(occasion) => onChange({ occasion })} /></Group><Group label="КАК ВЫ ПЕРЕНОСИТЕ ХОЛОД"><UnderlineTabs label="Чувствительность к холоду" choices={Object.entries(warmthLabels).map(([value, label]) => ({ value: value as WarmthPreference, label }))} value={p.warmth} onChange={(warmth) => onChange({ warmth })} /></Group><Text style={styles.note}>Применяется к подбору одежды в приложении и виджете.</Text></>}
-    {page === "about" && <><Text style={styles.note}>Настройки хранятся на устройстве. Аккаунт не требуется. Геолокация — только по нажатию; координаты передаются сервису погоды.</Text><Text style={styles.note}>AppMetrica помогает измерять посещения, возвраты и использование подборок. Статистика использования включена по умолчанию. Город, поисковые запросы, координаты и названия вещей в события не передаются.</Text>{children}<Row icon="code-slash-outline" label="Диагностика разработчика" value={p.diagnostics} onValueChange={(diagnostics) => onChange({ diagnostics })} /></>}
-    {page === "feedback" && <><Row icon="mail-outline" label="Написать разработчику" onPress={onFeedback} /><Row icon="heart-outline" label="Оценить в RuStore" onPress={onRate} /><Row icon="notifications-outline" label="Напоминать об оценке" hint="В приложении, без уведомлений" value={reviewsEnabled} onValueChange={onReviewsChange} /></>}
+    {page === "about" && <><Text style={styles.note}>Настройки хранятся на устройстве. Аккаунт не требуется. Геолокация — только по нажатию; координаты передаются сервису погоды.</Text><Text style={styles.note}>AppMetrica помогает измерять посещения, возвраты и использование подборок. Статистика использования включена по умолчанию. Город, поисковые запросы, координаты и названия вещей в события не передаются.</Text>{Platform.OS === "android" && <Row icon="megaphone-outline" label="Реклама по интересам" hint="Только с вашего разрешения, для пользователей 18+" value={p.personalizedAds} onValueChange={changeAdPersonalization} />}{children}<Row icon="code-slash-outline" label="Диагностика разработчика" value={p.diagnostics} onValueChange={(diagnostics) => onChange({ diagnostics })} /></>}
+    {page === "feedback" && <><Row icon="mail-outline" label="Написать разработчику" onPress={onFeedback} /><Row icon="heart-outline" label={`Оценить в ${storeName}`} onPress={onRate} /><Row icon="notifications-outline" label="Напоминать об оценке" hint="В приложении, без уведомлений" value={reviewsEnabled} onValueChange={onReviewsChange} /></>}
   </View>;
 }
 const styles = StyleSheet.create({

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AppState } from "react-native";
 import type { City, Forecast } from "../../src/lib/weather";
-import { loadForecast, savedForecast, memoryForecast, isForecastFresh, log } from "./weather";
+import { loadForecast, savedForecast, memoryForecast, isForecastFresh, forecastCityKey, log } from "./weather";
 
 /** @param {City | undefined} city - Восстановленный город пользователя. @returns {object} Прогноз, состояние сети и обновление с защитой от устаревших ответов. */
 export function useForecast(city: City | undefined) {
@@ -36,14 +36,15 @@ export function useForecast(city: City | undefined) {
     /** @returns {Promise<void>} Загружает снимок и сеть; отменённые запросы не меняют интерфейс. */
     async function load(): Promise<void> {
       const startedAt = Date.now();
-      const snapshot = memory || await savedForecast(city!);
-      if (controller.signal.aborted) return;
-      if (snapshot) {
-        log("forecast restored", { elapsedMs: Date.now() - startedAt, fresh: isForecastFresh(city!) });
-        setForecast(snapshot);
-        setStale(!isForecastFresh(city!));
-      }
+      let snapshot = memory;
       try {
+        snapshot ||= await savedForecast(city!);
+        if (controller.signal.aborted) return;
+        if (snapshot) {
+          log("forecast restored", { elapsedMs: Date.now() - startedAt, fresh: isForecastFresh(city!) });
+          setForecast(snapshot);
+          setStale(!isForecastFresh(city!));
+        }
         const next = await loadForecast(city!, controller.signal);
         if (!controller.signal.aborted) {
           log("forecast displayed", { elapsedMs: Date.now() - startedAt });
@@ -66,12 +67,10 @@ export function useForecast(city: City | undefined) {
     }
     void load();
     return () => controller.abort();
-  }, [city?.latitude, city?.longitude, revision]);
-  const matches =
-    forecast?.city.latitude === city?.latitude &&
-    forecast?.city.longitude === city?.longitude;
+  }, [city?.id, city?.name, city?.country, city?.latitude, city?.longitude, revision]);
+  const matches = forecast && city && forecastCityKey(forecast.city) === forecastCityKey(city);
   return {
-    forecast: matches ? forecast : undefined,
+    forecast: matches ? forecast.city === city ? forecast : { ...forecast, city: city! } : undefined,
     loading,
     stale,
     error,

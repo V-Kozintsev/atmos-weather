@@ -1,78 +1,118 @@
-import { useEffect, useState } from "react";
-import { Linking } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AppState, Linking } from "react-native";
 import { read, write } from "./storage";
+import { storeUrl } from "./distribution";
+import { trackEvent } from "./analytics";
+import { normalizeReviewHistory, reviewEligible, reviewDelay, type ReviewHistory } from "./reviewsPolicy";
 
-interface ReviewHistory {
-  first: number;
-  days: string[];
-  until: number;
-  disabled: boolean;
-  prompts: number;
-}
 const key = "atmos-native-review-history";
-export const reviewUrl = "https://www.rustore.ru/catalog/app/ru.puskweb.atmos";
+export const reviewUrl = storeUrl;
+export { reviewEligible } from "./reviewsPolicy";
 
-/** @param {ReviewHistory} history - Локальная история использования. @param {number} now - Текущее время. @returns {boolean} Допускает не более двух предложений после трёх дней использования. */
-export function reviewEligible(history: ReviewHistory, now: number): boolean {
-  return (
-    !history.disabled &&
-    history.prompts < 2 &&
-    history.days.length >= 3 &&
-    now - history.first >= 3 * 86400000 &&
-    now >= history.until
-  );
-}
-
-/** @param {boolean} successful - Погода успешно загружена. @returns {object} Ненавязчивое предложение, откладывание и отключение. */
-export function useReviews(successful: boolean) {
+/** @param {boolean} successful - Загружен свежий прогноз. @param {boolean} ready - Приложение доступно без других окон. @param {boolean} outfitVisible - Пользователь читает готовый комплект. @returns {object} Просьба после полезного просмотра и подтверждение отзыва после магазина. */
+export function useReviews(successful: boolean, ready = true, outfitVisible = false) {
   const [history, setHistory] = useState<ReviewHistory>();
+  const latest = useRef<ReviewHistory | undefined>(undefined);
+  const writes = useRef(Promise.resolve());
+  const shown = useRef(false);
+  const openingStore = useRef(false);
+  const leftForStore = useRef(false);
+  const [confirmationReady, setConfirmationReady] = useState(true);
   const [visible, setVisible] = useState(false);
+  const [active, setActive] = useState(AppState.currentState === "active");
+  const [clock, setClock] = useState(Date.now());
+
+  /** @param {ReviewHistory} next - Новая история без персональных данных. @returns {Promise<void>} Последовательно сохраняет изменения без перезаписи новейшего действия старой записью. */
+  const save = useCallback((next: ReviewHistory): Promise<void> => {
+    latest.current = next;
+    setHistory(next);
+    writes.current = writes.current.then(() => write(key, next));
+    return writes.current;
+  }, []);
+
   useEffect(() => {
     let alive = true;
-    /** @returns {Promise<void>} Учитывает день успешного использования, не отдельные запросы API. */
-    async function registerDay(): Promise<void> {
-      const now = Date.now();
-      const saved = await read<Partial<ReviewHistory> | null>(key, null);
-      if (!alive) return;
-      const today = new Date().toLocaleDateString("en-CA");
-      const next: ReviewHistory = {
-        first: Number.isFinite(saved?.first) ? saved!.first! : now,
-        days: Array.isArray(saved?.days)
-          ? saved.days.filter((day) => typeof day === "string").slice(-30)
-          : [],
-        until: Number.isFinite(saved?.until) ? saved!.until! : 0,
-        disabled: saved?.disabled === true,
-        prompts: Number.isFinite(saved?.prompts) ? saved!.prompts! : 0,
-      };
-      if (successful && !next.days.includes(today)) next.days.push(today);
-      const eligible = successful && reviewEligible(next, now);
-      if (eligible) {
-        next.prompts += 1;
-        next.until = now + 30 * 86400000;
+    void read<Partial<ReviewHistory> | null>(key, null).then((saved) => {
+      if (alive) void save(normalizeReviewHistory(saved, Date.now()));
+    });
+    return () => { alive = false; };
+  }, [save]);
+
+  useEffect(() => {
+    const listener = AppState.addEventListener("change", (state) => {
+      if (state !== "active" && openingStore.current) leftForStore.current = true;
+      if (state === "active" && leftForStore.current) {
+        openingStore.current = false;
+        leftForStore.current = false;
+        setConfirmationReady(true);
       }
-      if (successful) await write(key, next);
-      if (alive) {
-        setHistory(next);
-        setVisible(eligible);
-      }
+      setActive(state === "active");
+      if (state === "active") setClock(Date.now());
+    });
+    return () => listener.remove();
+  }, []);
+
+  useEffect(() => {
+    if (!successful || !active || !history) return;
+    const today = new Date().toLocaleDateString("en-CA");
+    if (!history.days.includes(today)) void save({ ...history, days: [...history.days.slice(-29), today] });
+  }, [successful, active, history, clock, save]);
+
+  useEffect(() => {
+    if (!ready || !active || !history || history.disabled || visible) return;
+    if (history.confirmationPending) {
+      if (confirmationReady) { shown.current = false; setVisible(true); }
+      return;
     }
-    void registerDay();
-    return () => {
-      alive = false;
-    };
-  }, [successful]);
-  /** @param {boolean} disabled - Отключение автоматических предложений. @returns {Promise<void>} Сохраняет настройку и убирает предложение. */
-  async function dismiss(disabled = false): Promise<void> {
+    if (!successful || !outfitVisible || !reviewEligible(history, Date.now())) return;
+    const timer = setTimeout(() => { shown.current = false; setVisible(true); }, 8000);
+    return () => clearTimeout(timer);
+  }, [successful, ready, active, history, clock, visible, outfitVisible, confirmationReady]);
+
+  useEffect(() => {
+    if (!history || history.disabled || !active) return;
+    const due = Math.max(history.until, history.first + 86400000);
+    const timer = setTimeout(() => setClock(Date.now()), Math.min(Math.max(due - Date.now(), 60000), 86400000));
+    return () => clearTimeout(timer);
+  }, [history, clock, active]);
+
+  /** @returns {void} Засчитывает один фактический показ окна, а не готовность к показу. */
+  const markShown = useCallback((): void => {
+    if (shown.current || !latest.current) return;
+    shown.current = true;
+    if (latest.current.confirmationPending) return;
+    void save({ ...latest.current, prompts: latest.current.prompts + 1, until: Date.now() + reviewDelay });
+    trackEvent("review_prompt_shown");
+  }, [save]);
+
+  /** @param {boolean} disabled - Явное отключение пользователем. @returns {Promise<void>} Закрывает окно и сохраняет паузу в три дня. */
+  const dismiss = useCallback(async (disabled = false): Promise<void> => {
+    openingStore.current = false;
+    leftForStore.current = false;
     setVisible(false);
-    if (!history) return;
-    const next = { ...history, disabled, until: Date.now() + 30 * 86400000 };
-    setHistory(next);
-    await write(key, next);
-  }
-  /** @returns {Promise<void>} Открывает карточку RuStore, не утверждая, что оценка оставлена. */
-  async function rate(): Promise<void> {
-    await Linking.openURL(reviewUrl);
-    await dismiss(true);
-  }
-  return { visible, disabled: history?.disabled === true, dismiss, rate };
+    if (!latest.current) return;
+    await save({ ...latest.current, disabled, confirmationPending: false, until: Date.now() + reviewDelay });
+    trackEvent(disabled ? "review_reminders_disabled" : "review_prompt_later");
+  }, [save]);
+
+  /** @returns {Promise<void>} Открывает магазин; только успешный переход разрешает действие «Уже оценил». */
+  const rate = useCallback(async (): Promise<void> => {
+    openingStore.current = true;
+    leftForStore.current = AppState.currentState !== "active";
+    setConfirmationReady(false);
+    try { await Linking.openURL(reviewUrl); }
+    catch (error) {
+      openingStore.current = false;
+      leftForStore.current = false;
+      setConfirmationReady(true);
+      trackEvent("review_store_error");
+      throw error;
+    }
+    setVisible(false);
+    shown.current = false;
+    if (latest.current) await save({ ...latest.current, storeOpened: true, confirmationPending: !latest.current.disabled, until: Date.now() + reviewDelay });
+    trackEvent("review_store_opened");
+  }, [save]);
+
+  return { visible: visible && (!history?.confirmationPending || confirmationReady) && (successful || !!history?.confirmationPending) && ready && active && !history?.disabled, confirmation: history?.confirmationPending === true, disabled: history?.disabled === true, storeOpened: history?.storeOpened === true, dismiss, rate, markShown };
 }
