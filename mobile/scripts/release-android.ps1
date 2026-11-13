@@ -1,8 +1,16 @@
 # Сборка подписанных APK для RuStore и AAB для Google Play существующим ключом подписи.
-# Путь к ключу, alias и пароли спрашиваются в этом окне (пароли — скрытым вводом),
-# живут только в этом процессе и не попадают в файлы, логи или Git.
-# Запуск: pwsh -NoProfile -ExecutionPolicy Bypass -File mobile/scripts/release-android.ps1
-param([string]$OutDir)
+# Путь к ключу, alias и пароли передаются параметрами или спрашиваются в этом окне (пароли — скрытым вводом).
+# Пароль можно взять из файла (-PasswordFile): один пароль для хранилища и ключа.
+# Секреты живут только в этом процессе и не попадают в логи или Git.
+# Запуск: pwsh -NoProfile -ExecutionPolicy Bypass -File mobile/scripts/release-android.ps1 [-KeystorePath <путь>] [-KeyAlias <alias>] [-PasswordFile <путь>]
+param([string]$OutDir, [string]$KeystorePath, [string]$KeyAlias, [string]$PasswordFile)
+if ($KeystorePath) { $env:ATMOS_KEYSTORE = $KeystorePath }
+if ($KeyAlias) { $env:ATMOS_KEY_ALIAS = $KeyAlias }
+if ($PasswordFile) {
+  if (-not (Test-Path -LiteralPath $PasswordFile)) { throw "Файл пароля не найден: $PasswordFile" }
+  $env:ATMOS_STORE_PASSWORD = (Get-Content -LiteralPath $PasswordFile -Raw).Trim()
+  $env:ATMOS_KEY_PASSWORD = $env:ATMOS_STORE_PASSWORD
+}
 $ErrorActionPreference = 'Stop'
 $mobile = Split-Path -Parent $PSScriptRoot
 $version = (Get-Content (Join-Path $mobile 'app.json') -Raw | ConvertFrom-Json).expo.version
@@ -15,7 +23,7 @@ function Read-Secret([string]$Prompt) {
 }
 
 Write-Host "Сборка «Погода и что надеть» $version для RuStore и Google Play" -ForegroundColor Cyan
-if (-not $env:ATMOS_KEYSTORE) { $env:ATMOS_KEYSTORE = (Read-Host 'Путь к файлу ключа (.jks или .keystore)').Trim('"', ' ') }
+if (-not $env:ATMOS_KEYSTORE) { $env:ATMOS_KEYSTORE = (Read-Host 'Путь к файлу ключа (.p12, .jks или .keystore)').Trim('"', ' ') }
 if (-not (Test-Path -LiteralPath $env:ATMOS_KEYSTORE)) { throw "Файл ключа не найден: $env:ATMOS_KEYSTORE" }
 if (-not $env:ATMOS_KEY_ALIAS) { $env:ATMOS_KEY_ALIAS = Read-Host 'Alias ключа' }
 if (-not $env:ATMOS_STORE_PASSWORD) { $env:ATMOS_STORE_PASSWORD = Read-Secret 'Пароль хранилища ключей' }
