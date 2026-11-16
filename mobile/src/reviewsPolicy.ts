@@ -10,6 +10,8 @@ export interface ReviewHistory {
 }
 
 export const reviewDelay = 3 * 86400000;
+/** Пауза после шторки оценки внутри приложения: магазины сами ограничивают частые показы. */
+export const inAppReviewPause = 60 * 86400000;
 
 /** @param {Partial<ReviewHistory> | null} saved - Прежняя история на устройстве. @param {number} now - Время чтения. @returns {ReviewHistory} Проверенные данные с переносом старой месячной паузы на трёхдневную. */
 export function normalizeReviewHistory(saved: Partial<ReviewHistory> | null, now: number): ReviewHistory {

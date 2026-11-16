@@ -3,7 +3,8 @@ import { AppState, Linking } from "react-native";
 import { read, write } from "./storage";
 import { storeUrl } from "./distribution";
 import { trackEvent } from "./analytics";
-import { normalizeReviewHistory, reviewEligible, reviewDelay, type ReviewHistory } from "./reviewsPolicy";
+import { inAppReviewPause, normalizeReviewHistory, reviewEligible, reviewDelay, type ReviewHistory } from "./reviewsPolicy";
+import { launchInAppReview, prepareInAppReview } from "./inAppReview";
 
 const key = "atmos-native-review-history";
 export const reviewUrl = storeUrl;
@@ -21,6 +22,7 @@ export function useReviews(successful: boolean, ready = true, outfitVisible = fa
   const [visible, setVisible] = useState(false);
   const [active, setActive] = useState(AppState.currentState === "active");
   const [clock, setClock] = useState(Date.now());
+  const [boost, setBoost] = useState(false);
 
   /** @param {ReviewHistory} next - Новая история без персональных данных. @returns {Promise<void>} Последовательно сохраняет изменения без перезаписи новейшего действия старой записью. */
   const save = useCallback((next: ReviewHistory): Promise<void> => {
@@ -64,10 +66,17 @@ export function useReviews(successful: boolean, ready = true, outfitVisible = fa
       if (confirmationReady) { shown.current = false; setVisible(true); }
       return;
     }
-    if (!successful || !outfitVisible || !reviewEligible(history, Date.now())) return;
-    const timer = setTimeout(() => { shown.current = false; setVisible(true); }, 8000);
+    if (!successful || !(outfitVisible || boost) || !reviewEligible(history, Date.now())) return;
+    const timer = setTimeout(() => { shown.current = false; setBoost(false); setVisible(true); }, boost ? 1500 : 8000);
     return () => clearTimeout(timer);
-  }, [successful, ready, active, history, clock, visible, outfitVisible, confirmationReady]);
+  }, [successful, ready, active, history, clock, visible, outfitVisible, confirmationReady, boost]);
+
+  useEffect(() => {
+    if (visible) void prepareInAppReview();
+  }, [visible]);
+
+  /** @returns {void} Хороший момент — комфортная прогулка или утренний совет: просьба появится вскоре, если её уже можно показывать. */
+  const nudge = useCallback((): void => { setBoost(true); }, []);
 
   useEffect(() => {
     if (!history || history.disabled || !active) return;
@@ -95,8 +104,15 @@ export function useReviews(successful: boolean, ready = true, outfitVisible = fa
     trackEvent(disabled ? "review_reminders_disabled" : "review_prompt_later");
   }, [save]);
 
-  /** @returns {Promise<void>} Открывает магазин; только успешный переход разрешает действие «Уже оценил». */
+  /** @returns {Promise<void>} Сначала шторка оценки внутри приложения; если её нет — магазин, и только успешный переход разрешает «Уже оценил». */
   const rate = useCallback(async (): Promise<void> => {
+    if (await launchInAppReview()) {
+      setVisible(false);
+      shown.current = false;
+      if (latest.current) await save({ ...latest.current, storeOpened: true, confirmationPending: false, until: Date.now() + inAppReviewPause });
+      trackEvent("review_inapp_completed");
+      return;
+    }
     openingStore.current = true;
     leftForStore.current = AppState.currentState !== "active";
     setConfirmationReady(false);
@@ -114,5 +130,5 @@ export function useReviews(successful: boolean, ready = true, outfitVisible = fa
     trackEvent("review_store_opened");
   }, [save]);
 
-  return { visible: visible && (!history?.confirmationPending || confirmationReady) && (successful || !!history?.confirmationPending) && ready && active && !history?.disabled, confirmation: history?.confirmationPending === true, disabled: history?.disabled === true, storeOpened: history?.storeOpened === true, dismiss, rate, markShown };
+  return { visible: visible && (!history?.confirmationPending || confirmationReady) && (successful || !!history?.confirmationPending) && ready && active && !history?.disabled, confirmation: history?.confirmationPending === true, disabled: history?.disabled === true, storeOpened: history?.storeOpened === true, dismiss, rate, markShown, nudge };
 }

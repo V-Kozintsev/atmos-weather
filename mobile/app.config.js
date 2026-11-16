@@ -5,7 +5,7 @@ module.exports = ({ config }) => {
   return {
     ...config,
     extra: { ...config.extra, distribution: store },
-    plugins: [...config.plugins, "./plugins/withGooglePlayUpdates", "./plugins/withYandexAds"],
+    plugins: [...config.plugins, "./plugins/withGooglePlayUpdates", "./plugins/withRuStoreReview", "./plugins/withYandexAds"],
     android: {
       ...config.android,
       blockedPermissions: [...config.android.blockedPermissions, ...(store === "google-play" ? ["android.permission.REQUEST_INSTALL_PACKAGES"] : [])],

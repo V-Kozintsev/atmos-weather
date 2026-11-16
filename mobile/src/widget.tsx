@@ -158,6 +158,8 @@ export async function widgetTaskHandler(
   props: WidgetTaskHandlerProps,
 ): Promise<void> {
   if (props.widgetAction === "WIDGET_DELETED") return;
+  // Метка для аналитики: приложение при запуске сообщит, что виджет на экране и обновляется.
+  await write("atmos-widget-seen", Date.now());
   const modeKey = `atmos-widget-mode:${props.widgetInfo.widgetId}`;
   const savedMode = await read<WidgetMode>(modeKey, "weather");
   const mode = props.clickAction === "TOGGLE_OUTFIT" ? savedMode === "outfit" ? "weather" : "outfit" : savedMode === "outfit" ? "outfit" : "weather";

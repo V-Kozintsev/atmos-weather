@@ -25,6 +25,8 @@ import { cityNearLocation, sameCity, setDiagnostics, log } from "./src/weather";
 import { Chip, s } from "./src/ui";
 import { WeatherHome } from "./src/WeatherHome";
 import { OutfitScreen } from "./src/OutfitScreen";
+import { KidOutfitCard, KidOutfitPanel } from "./src/KidOutfit";
+import { kidAgeLabels, kidOutfit, kidPlanLabels, pickupHint, type KidAge, type KidPlan } from "../src/lib/kids";
 import { CitySearch } from "./src/CitySearch";
 import { FirstRun } from "./src/FirstRun";
 import { ComfortSheet } from "./src/ComfortSheet";
@@ -64,6 +66,10 @@ interface Preferences extends OutfitPreferences {
   sceneMode: SceneMode;
   morningAdvice: boolean;
   morningTime: MorningTime;
+  weatherAlerts: boolean;
+  kidMode: boolean;
+  kidAge: KidAge;
+  kidPlan: KidPlan;
 }
 const initial: Preferences = {
   ...defaultOutfitPreferences,
@@ -79,6 +85,10 @@ const initial: Preferences = {
   sceneMode: "auto",
   morningAdvice: false,
   morningTime: defaultMorningTime,
+  weatherAlerts: true,
+  kidMode: false,
+  kidAge: "preschool",
+  kidPlan: "garden",
 };
 const tabs: [Tab, string, keyof typeof Ionicons.glyphMap][] = [
   ["weather", "Погода", "partly-sunny-outline"],
@@ -115,19 +125,25 @@ function Atmos(): React.JSX.Element {
   const [returning, setReturning] = useState(false);
   const [morningOfferDismissed, setMorningOfferDismissed] = useState(true);
   const [morningBusy, setMorningBusy] = useState(false);
+  const [onboardingMorning, setOnboardingMorning] = useState(true);
   const { forecast, loading, stale, error, refresh } = useForecast(city);
   const sceneTheme = useSceneTheme(forecast, preferences.sceneMode);
   const theme = onboarding ? timeThemes.morning : tab === "settings" ? timeThemes.day : sceneTheme;
   const cityPhoto = useCityPhoto(city, preferences.cityBackground && !!city && !cityPhotoKey(city));
   const updates = useAppUpdates(hydrated && !onboarding);
   const reviews = useReviews(!!forecast && !stale && !loading, hydrated && !onboarding && !outfitSetupVisible && !comfortVisible && !searchVisible && !locating && !updates.state.visible && !updates.busy, tab === "outfit" && !error);
-  useMorningAdviceOpen(() => {
-    trackEvent("morning_advice_opened");
+  useMorningAdviceOpen((kind) => {
+    trackEvent(kind === "alert" ? "weather_alert_opened" : "morning_advice_opened");
     setPeriod("day");
     setTab("outfit");
+    reviews.nudge();
   });
   useEffect(() => {
     if (hydrated) setAnalyticsEnabled(true);
+  }, [hydrated]);
+  useEffect(() => {
+    if (!hydrated || Platform.OS !== "android") return;
+    void read<number>("atmos-widget-seen", 0).then((seen) => { if (Date.now() - seen < 48 * 3600_000) trackEvent("widget_active"); });
   }, [hydrated]);
   useEffect(() => {
     setAdPersonalization(hydrated && preferences.personalizedAds);
@@ -146,9 +162,9 @@ function Atmos(): React.JSX.Element {
   }, [forecast, hydrated, preferences, stale, comfort, onboarding]);
   useEffect(() => {
     if (!forecast || !hydrated || onboarding) return;
-    const { gender, occasion, warmth, fahrenheit, morningAdvice, morningTime } = preferences;
-    void scheduleMorningAdvice(forecast, { gender, occasion, warmth, fahrenheit, morningAdvice, morningTime, comfortOffset: activeComfortOffset(comfort, forecast.current.time.slice(0, 10)) });
-  }, [forecast, hydrated, onboarding, comfort, preferences.gender, preferences.occasion, preferences.warmth, preferences.fahrenheit, preferences.morningAdvice, preferences.morningTime]);
+    const { gender, occasion, warmth, fahrenheit, morningAdvice, morningTime, weatherAlerts, kidMode, kidAge, kidPlan } = preferences;
+    void scheduleMorningAdvice(forecast, { gender, occasion, warmth, fahrenheit, morningAdvice, morningTime, weatherAlerts, kid: kidMode ? { age: kidAge, plan: kidPlan } : undefined, comfortOffset: activeComfortOffset(comfort, forecast.current.time.slice(0, 10)) });
+  }, [forecast, hydrated, onboarding, comfort, preferences.gender, preferences.occasion, preferences.warmth, preferences.fahrenheit, preferences.morningAdvice, preferences.morningTime, preferences.weatherAlerts, preferences.kidMode, preferences.kidAge, preferences.kidPlan]);
   const morningOfferVisible = Platform.OS === "android" && hydrated && returning && !onboarding && !preferences.morningAdvice && !morningOfferDismissed && !!forecast && !stale;
   useEffect(() => {
     if (morningOfferVisible) trackEvent("morning_offer_shown");
@@ -203,6 +219,10 @@ function Atmos(): React.JSX.Element {
         sceneMode: sceneModes.some(([mode]) => mode === saved.sceneMode) ? saved.sceneMode! : "auto",
         morningAdvice: saved.morningAdvice === true,
         morningTime: isMorningTime(saved.morningTime) ? saved.morningTime : defaultMorningTime,
+        weatherAlerts: saved.weatherAlerts !== false,
+        kidMode: saved.kidMode === true,
+        kidAge: typeof saved.kidAge === "string" && saved.kidAge in kidAgeLabels ? saved.kidAge : "preschool",
+        kidPlan: typeof saved.kidPlan === "string" && saved.kidPlan in kidPlanLabels ? saved.kidPlan : "garden",
       });
       setReturning(setupDone || !!savedPreferences);
       setMorningOfferDismissed(offerDismissed);
@@ -262,7 +282,7 @@ function Atmos(): React.JSX.Element {
     await write("atmos-native-morning-offer-dismissed", true);
   }
   /** @param {boolean} enabled - Запрошенное состояние. @param {"offer" | "settings"} origin - Где пользователь сделал выбор. @returns {Promise<void>} Включает утренний совет только после системного разрешения Android. */
-  async function changeMorningAdvice(enabled: boolean, origin: "offer" | "settings"): Promise<void> {
+  async function changeMorningAdvice(enabled: boolean, origin: "offer" | "settings" | "onboarding"): Promise<void> {
     if (!enabled) {
       update({ morningAdvice: false });
       void cancelMorningAdvice();
@@ -297,9 +317,11 @@ function Atmos(): React.JSX.Element {
       await write("atmos-native-onboarding-done", true, true);
       await write("atmos-native-outfit-setup-done", true, true);
       trackEvent("onboarding_completed", { skipped });
+      const welcome = onboarding;
       setOnboarding(false);
       setOutfitSetupDone(true);
       setOutfitSetupVisible(false);
+      if (Platform.OS === "android" && welcome && !skipped && onboardingMorning) void changeMorningAdvice(true, "onboarding");
     } catch { setNotice("Не удалось сохранить настройки. Попробуйте ещё раз."); }
     finally { setOnboardingSaving(false); }
   }
@@ -311,6 +333,7 @@ function Atmos(): React.JSX.Element {
     setComfort(next);
     trackEvent("comfort_feedback", { comfort: vote });
     setComfortVisible(false);
+    if (vote === "comfortable") reviews.nudge();
   }
   /** @returns {Promise<void>} Запрашивает доступ по нажатию и использует только округлённые координаты. */
   async function locate(): Promise<void> {
@@ -420,10 +443,17 @@ function Atmos(): React.JSX.Element {
         ? `На вечер — ${eveningOutfit.pieces.outer.toLocaleLowerCase("ru")}`
         : `На вечер — ${eveningOutfit.pieces.upper.toLocaleLowerCase("ru")}`;
   const immersiveWeather = tab === "weather" && !!forecast && !notice && !error;
+  // Детский режим: часы с 7 до 19 сегодня, а вечером — на завтра, когда родители собирают ребёнка заранее.
+  const kidWindow = (date?: string) => forecast?.hours.filter((hour) => !!date && hour.time.startsWith(date) && Number(hour.time.slice(11, 13)) >= 7 && Number(hour.time.slice(11, 13)) <= 19) || [];
+  const kidToday = kidWindow(forecast?.days[0]?.date).filter((hour) => !firstHour || hour.time >= firstHour.time.slice(0, 13));
+  const kidDay = kidToday.length ? forecast?.days[0] : forecast?.days[1];
+  const kidHours = kidToday.length ? kidToday : kidWindow(forecast?.days[1]?.date);
+  const kid = preferences.kidMode && forecast && firstHour && kidDay ? kidOutfit(kidDay, kidHours, firstHour, preferences.kidAge, preferences.kidPlan) : undefined;
+  const kidPickup = kid ? pickupHint(kidHours, preferences.fahrenheit) : undefined;
   const morningOffer = morningOfferVisible ? <MorningOffer time={preferences.morningTime} busy={morningBusy} onAccept={() => void changeMorningAdvice(true, "offer")} onDismiss={() => void dismissMorningOffer()} /> : null;
 
   if ((onboarding || outfitSetupVisible) && hydrated) return <TimeThemeContext.Provider value={timeThemes.morning}>
-    <FirstRun context={outfitSetupVisible ? "outfit" : "welcome"} city={city} gender={preferences.gender} warmth={preferences.warmth} saving={onboardingSaving} error={notice} onCity={() => setSearchVisible(true)} onGender={(gender) => update({ gender })} onWarmth={(warmth) => update({ warmth })} onDone={(skipped) => void finishOnboarding(skipped)} />
+    <FirstRun context={outfitSetupVisible ? "outfit" : "welcome"} city={city} gender={preferences.gender} warmth={preferences.warmth} saving={onboardingSaving} error={notice} onCity={() => setSearchVisible(true)} onGender={(gender) => update({ gender })} onWarmth={(warmth) => update({ warmth })} onDone={(skipped) => void finishOnboarding(skipped)} morning={{ enabled: onboardingMorning, time: preferences.morningTime, onChange: setOnboardingMorning }} onWidget={() => { trackEvent("widget_pin_requested", { origin: "onboarding" }); void pinWidget(); }} kid={{ enabled: preferences.kidMode, onChange: (kidMode) => update({ kidMode }) }} />
     <CitySearch visible={searchVisible} favorites={favorites} locating={locating} notice={notice} onClose={() => setSearchVisible(false)} onChoose={chooseCity} onFavorite={toggleCityFavorite} onLocate={() => { if (!locating) void locate(); }} />
   </TimeThemeContext.Provider>;
   return (
@@ -464,9 +494,9 @@ function Atmos(): React.JSX.Element {
           </View>
         ) : null}
         {tab !== "settings" && !forecast && <ForecastLoading pending={loading || !hydrated} />}
-        {tab === "weather" && forecast && <WeatherHome forecast={forecast} advice={advice} gender={preferences.gender} occasion={preferences.occasion} period={period} eveningHour={eveningHour} eveningHint={eveningHint} fahrenheit={preferences.fahrenheit} background={preferences.cityBackground} sceneMode={preferences.sceneMode} photo={cityPhoto} stale={stale} dayIndex={dayIndex} hours={selectedHours} wide={wide} sceneVisible={heroVisible && !searchVisible && !comfortVisible && !reviews.visible && !updates.state.visible} motionEnabled={preferences.weatherMotion} topInset={immersiveWeather ? insets.top : 0} onHeroHeight={measureHero} onCity={() => setSearchVisible(true)} comfortAnswered={comfort?.day === forecast.current.time.slice(0, 10)} onComfort={() => { trackEvent("comfort_prompt_opened"); setComfortVisible(true); }} onOutfit={() => setTab("outfit")} onDay={setDayIndex} onShare={() => void share()} onSource={(url) => void openLink(url)} offer={morningOffer} ad={hydrated ? <WeatherAd personalizedAds={preferences.personalizedAds} /> : null} />}
+        {tab === "weather" && forecast && <WeatherHome forecast={forecast} advice={advice} gender={preferences.gender} occasion={preferences.occasion} period={period} eveningHour={eveningHour} eveningHint={eveningHint} fahrenheit={preferences.fahrenheit} background={preferences.cityBackground} sceneMode={preferences.sceneMode} photo={cityPhoto} stale={stale} dayIndex={dayIndex} hours={selectedHours} wide={wide} sceneVisible={heroVisible && !searchVisible && !comfortVisible && !reviews.visible && !updates.state.visible} motionEnabled={preferences.weatherMotion} topInset={immersiveWeather ? insets.top : 0} onHeroHeight={measureHero} onCity={() => setSearchVisible(true)} comfortAnswered={comfort?.day === forecast.current.time.slice(0, 10)} onComfort={() => { trackEvent("comfort_prompt_opened"); setComfortVisible(true); }} onOutfit={() => setTab("outfit")} onDay={setDayIndex} onShare={() => void share()} onSource={(url) => void openLink(url)} offer={morningOffer} ad={hydrated ? <WeatherAd personalizedAds={preferences.personalizedAds} /> : null} kidCard={kid ? <KidOutfitCard outfit={kid} plan={preferences.kidPlan} onPress={() => setTab("outfit")} /> : undefined} />}
         {tab === "outfit" && advice && forecast && (
-          <OutfitScreen forecast={forecast} advice={advice} period={period} gender={preferences.gender} occasion={preferences.occasion} fahrenheit={preferences.fahrenheit} eveningHour={eveningHour} eveningHint={eveningHint} onPeriodChange={setPeriod} onGenderChange={(gender) => update({ gender })}>
+          <OutfitScreen forecast={forecast} advice={advice} period={period} gender={preferences.gender} occasion={preferences.occasion} fahrenheit={preferences.fahrenheit} eveningHour={eveningHour} eveningHint={eveningHint} onPeriodChange={setPeriod} onGenderChange={(gender) => update({ gender })} kidMode={preferences.kidMode} onKidMode={(kidMode) => { if (kidMode) trackEvent("kid_mode_opened"); update({ kidMode }); }} kidPanel={kid ? <KidOutfitPanel outfit={kid} age={preferences.kidAge} plan={preferences.kidPlan} pickup={kidPickup} onAge={(kidAge) => update({ kidAge })} onPlan={(kidPlan) => update({ kidPlan })} onOpen={openLink} /> : undefined}>
             <OutfitCustomization advice={advice} gender={preferences.gender} occasion={preferences.occasion} warmth={preferences.warmth} onOccasionChange={(occasion) => update({ occasion })} onWarmthChange={(warmth) => update({ warmth })} onOpen={openLink} />
           </OutfitScreen>
         )}
@@ -476,7 +506,7 @@ function Atmos(): React.JSX.Element {
           city={city} forecast={forecast} favorites={favorites} locating={locating}
           onCity={() => setSearchVisible(true)} onLocate={() => { if (!locating) void locate(); }}
           onFavorite={(value) => { chooseCity(value); setTab("weather"); }}
-          onWidget={pinWidget}
+          onWidget={() => { trackEvent("widget_pin_requested", { origin: "settings" }); return pinWidget(); }}
           onFeedback={() => void openLink("mailto:aurelio3@mail.ru?subject=" + encodeURIComponent("Погода и что надеть — обратная связь"))}
           onRate={() => void reviews.rate().catch(() => setNotice(`Не удалось открыть ${storeName}. Попробуйте позже.`))}
           reviewsEnabled={!reviews.disabled} onReviewsChange={(enabled) => void reviews.dismiss(!enabled)}

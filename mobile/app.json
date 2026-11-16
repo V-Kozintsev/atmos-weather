@@ -2,7 +2,7 @@
   "expo": {
     "name": "Погода и что надеть",
     "slug": "atmos-weather",
-    "version": "3.0.13",
+    "version": "3.1.0",
     "orientation": "default",
     "icon": "./assets/icon-v2.png",
     "userInterfaceStyle": "light",
@@ -12,7 +12,7 @@
     },
     "android": {
       "package": "ru.puskweb.atmos",
-      "versionCode": 17,
+      "versionCode": 18,
       "permissions": [
         "com.google.android.gms.permission.AD_ID"
       ],

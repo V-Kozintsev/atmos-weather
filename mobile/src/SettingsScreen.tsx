@@ -17,7 +17,7 @@ type Page = "main" | "city" | "units" | "scene" | "widget" | "comfort" | "mornin
 interface SettingsPreferences {
   cityBackground: boolean; weatherMotion: boolean; sceneMode: SceneMode; widgetDark: boolean; widgetAutoTheme: boolean;
   widgetClothes: boolean; fahrenheit: boolean; diagnostics: boolean; personalizedAds: boolean;
-  occasion: OutfitOccasion; warmth: WarmthPreference; morningAdvice: boolean; morningTime: MorningTime;
+  occasion: OutfitOccasion; warmth: WarmthPreference; morningAdvice: boolean; morningTime: MorningTime; weatherAlerts: boolean;
 }
 interface Props {
   preferences: SettingsPreferences; onChange: (change: Partial<SettingsPreferences>) => void;
@@ -128,6 +128,7 @@ export function SettingsScreen({ preferences: p, onChange, version, checking, on
     {page === "comfort" && <><Group label="ВАШИ ПЛАНЫ"><UnderlineTabs label="Стиль одежды" choices={Object.entries(occasionLabels).map(([value, label]) => ({ value: value as OutfitOccasion, label }))} value={p.occasion} onChange={(occasion) => onChange({ occasion })} /></Group><Group label="КАК ВЫ ПЕРЕНОСИТЕ ХОЛОД"><UnderlineTabs label="Чувствительность к холоду" choices={Object.entries(warmthLabels).map(([value, label]) => ({ value: value as WarmthPreference, label }))} value={p.warmth} onChange={(warmth) => onChange({ warmth })} /></Group><Text style={styles.note}>Применяется к подбору одежды в приложении и виджете.</Text></>}
     {page === "morning" && Platform.OS === "android" && <>
       <Row icon="notifications-outline" label={morningBusy ? "Включаем…" : "Присылать утром"} hint="Погода на день и что надеть" value={p.morningAdvice} onValueChange={(enabled) => { if (!morningBusy) onMorningAdvice(enabled); }} />
+      {p.morningAdvice && <Row icon="rainy-outline" label="Предупреждать днём" hint="За час до дождя или снега, о похолодании к вечеру — не чаще раза в день" value={p.weatherAlerts} onValueChange={(weatherAlerts) => onChange({ weatherAlerts })} />}
       {p.morningAdvice && <Group label="ВРЕМЯ">{morningTimes.map((morningTime) => <Row key={morningTime} icon={p.morningTime === morningTime ? "checkmark-circle-outline" : "ellipse-outline"} label={morningTime} onPress={() => onChange({ morningTime })} />)}</Group>}
       <Text style={styles.note}>Одно уведомление в день для выбранного города. Совет составляем на устройстве по последнему прогнозу; если на главном экране есть виджет, текст обновляется и в фоне. Отключить можно здесь или в настройках уведомлений Android.</Text>
     </>}

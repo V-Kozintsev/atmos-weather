@@ -24,10 +24,12 @@ interface Props {
   offer?: ReactNode;
   /** Рекламный блок сразу после комплекта, чтобы он попадал в первый экран прокрутки. */
   ad?: ReactNode;
+  /** Карточка детского комплекта вместо взрослого образа в детском режиме. */
+  kidCard?: ReactNode;
 }
 
 /** @param {Props} props - Живой прогноз, комплект одежды и действия главного экрана. @returns {React.JSX.Element} Единый экран с растворяющимся фото, открытой композицией вещей и почасовыми колонками. */
-export function WeatherHome({ forecast, advice, gender, occasion, period, eveningHour, eveningHint, fahrenheit, background, sceneMode, photo, stale, dayIndex, hours, wide, sceneVisible, motionEnabled, topInset, onHeroHeight, onCity, comfortAnswered, onComfort, onOutfit, onDay, onShare, onSource, offer, ad }: Props): React.JSX.Element {
+export function WeatherHome({ forecast, advice, gender, occasion, period, eveningHour, eveningHint, fahrenheit, background, sceneMode, photo, stale, dayIndex, hours, wide, sceneVisible, motionEnabled, topInset, onHeroHeight, onCity, comfortAnswered, onComfort, onOutfit, onDay, onShare, onSource, offer, ad, kidCard }: Props): React.JSX.Element {
   const theme = useTimeTheme();
   const styles = createStyles(theme);
   const { width, height, fontScale } = useWindowDimensions();
@@ -47,7 +49,7 @@ export function WeatherHome({ forecast, advice, gender, occasion, period, evenin
   return <View style={[styles.layout, wide && styles.wide]}>
     <View style={[styles.column, wide && styles.mainColumn]}>
       <WeatherHero forecast={forecast} mode={sceneMode} photo={photo} photosEnabled={background} fahrenheit={fahrenheit} stale={stale} visible={sceneVisible} motionEnabled={motionEnabled} topInset={topInset} onCity={onCity} onHeight={onHeroHeight} />
-      {advice && <View style={styles.inset}><DailyBrief forecast={forecast} advice={advice} evening={eveningHour} fahrenheit={fahrenheit} />{offer}<OutfitCard advice={advice} gender={gender} occasion={occasion} period={period} evening={eveningHint} eveningTemperature={eveningHour ? degrees(eveningHour.feels) : undefined} description={outfitDescription} compact={dense} onPress={onOutfit} />
+      {advice && <View style={styles.inset}><DailyBrief forecast={forecast} advice={advice} evening={eveningHour} fahrenheit={fahrenheit} />{offer}{kidCard || <OutfitCard advice={advice} gender={gender} occasion={occasion} period={period} evening={eveningHint} eveningTemperature={eveningHour ? degrees(eveningHour.feels) : undefined} description={outfitDescription} compact={dense} onPress={onOutfit} />}
         {ad}
         <View style={styles.walk}><Ionicons name="partly-sunny-outline" size={26} color={theme.accent} /><View style={styles.walkCopy}><Text style={styles.detailTitle}>Для прогулки</Text><Text style={styles.detailText}>{walk ? `${walk.time.slice(0, 10) === day.date ? "Сегодня" : "Завтра"}, ${clock(walk.time)} · ${degrees(walk.feels)} по ощущениям` : "Погода не подходит для комфортной прогулки — проверьте ближайшие часы."}</Text></View></View>
         <Pressable accessibilityRole="button" onPress={onComfort} style={styles.comfort}><ComfortIcon kind="comfortable" color={theme.primary} size={26} /><View style={styles.walkCopy}><Text style={styles.detailTitle}>{comfortAnswered ? "Ответ о комфорте сохранён" : "После прогулки"}</Text><Text style={styles.detailText}>{comfortAnswered ? "Учтём ваши ощущения в следующих советах · изменить" : "Как было по ощущениям? Подстроим совет под вас."}</Text></View><Ionicons name="chevron-forward" size={18} color={theme.primary} /></Pressable>

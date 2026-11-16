@@ -13,16 +13,34 @@ import { WeatherIcon } from "./WeatherIcon";
 import { s } from "./ui";
 
 /** @param {object} props - Прогноз, выбранная одежда и действия. @returns {React.JSX.Element} Погодный гардероб с журнальной раскладкой и одним списком вещей. */
-export function OutfitScreen({ forecast, advice, period, gender, occasion, fahrenheit, eveningHour, eveningHint, onPeriodChange, onGenderChange, children }: {
+export function OutfitScreen({ forecast, advice, period, gender, occasion, fahrenheit, eveningHour, eveningHint, onPeriodChange, onGenderChange, kidMode = false, onKidMode, kidPanel, children }: {
   forecast: Forecast; advice: OutfitAdvice;
   period: "hour" | "day"; gender: "woman" | "man"; occasion: OutfitOccasion; fahrenheit: boolean;
   eveningHour?: Forecast["hours"][number]; eveningHint: string;
-  onPeriodChange: (value: "hour" | "day") => void; onGenderChange: (value: "woman" | "man") => void; children: ReactNode;
+  onPeriodChange: (value: "hour" | "day") => void; onGenderChange: (value: "woman" | "man") => void;
+  kidMode?: boolean; onKidMode?: (enabled: boolean) => void; kidPanel?: ReactNode; children: ReactNode;
 }): React.JSX.Element {
   const theme = useTimeTheme();
   const styles = createStyles(theme);
   const { width, fontScale } = useWindowDimensions();
-  const stackedToolbar = width < 350 || fontScale > 1.25;
+  const stackedToolbar = width < 400 || fontScale > 1.25;
+  const audience = kidMode ? "kid" : gender;
+  /** @param {"woman" | "man" | "kid"} value - Для кого комплект. @returns {void} Переключает взрослый вариант или детский режим. */
+  function changeAudience(value: "woman" | "man" | "kid"): void {
+    if (value === "kid") { onKidMode?.(true); return; }
+    if (kidMode) onKidMode?.(false);
+    onGenderChange(value);
+  }
+  const audienceTabs = <UnderlineTabs label="Для кого комплект" choices={[{ value: "woman" as const, label: "Женский" }, { value: "man" as const, label: "Мужской" }, ...(onKidMode ? [{ value: "kid" as const, label: "Детский" }] : [])]} value={audience} onChange={changeAudience} />;
+  if (kidMode && kidPanel) return <View style={styles.screen}>
+    {audienceTabs}
+    <View style={styles.weather}>
+      <WeatherIcon code={forecast.current.code} night={!forecast.current.day} surface={theme.dark ? "dark" : "light"} size={44} />
+      <Text style={styles.temperature}>{temperature(forecast.current.temperature, fahrenheit)}°</Text>
+      <View style={styles.weatherDetails}><Text style={styles.weatherText}>Ощущается как {temperature(forecast.current.feels, fahrenheit)}°</Text><Text style={styles.weatherText}>Ветер {windSpeed(forecast.current.wind)} м/с</Text></View>
+    </View>
+    {kidPanel}
+  </View>;
   const heroSize = Math.min(width - 36, 640);
   const late = Number(forecast.current.time.slice(11, 13)) >= 16;
   const title = advice.rain ? advice.snow ? "Защита от снега" : "На случай дождя" : ["heat", "warm"].includes(advice.style) ? "Сегодня налегке" : advice.style === "mild" ? late ? "Лёгкий слой на вечер" : "Лёгкий слой на день" : "Тёплые слои";
@@ -33,7 +51,7 @@ export function OutfitScreen({ forecast, advice, period, gender, occasion, fahre
     <View style={[styles.toolbar, stackedToolbar && styles.toolbarStacked]}>
       <View style={stackedToolbar ? styles.stackedGroup : s.flex}><UnderlineTabs label="Период рекомендации" choices={[{ value: "hour", label: "На час" }, { value: "day", label: "Весь день" }]} value={period} onChange={onPeriodChange} /></View>
       {!stackedToolbar && <View style={styles.separator} />}
-      <View style={stackedToolbar ? styles.stackedGroup : s.flex}><UnderlineTabs label="Вариант одежды" choices={[{ value: "woman", label: "Женский" }, { value: "man", label: "Мужской" }]} value={gender} onChange={onGenderChange} /></View>
+      <View style={stackedToolbar ? styles.stackedGroup : s.flex}>{audienceTabs}</View>
     </View>
     <View style={styles.intro}>
       <SeasonalAccent forecast={forecast} />

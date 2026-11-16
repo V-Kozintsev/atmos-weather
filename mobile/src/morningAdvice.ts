@@ -1,8 +1,8 @@
 import type { Forecast } from "../../src/lib/weather";
 import type { OutfitPreferences } from "../../src/lib/outfit";
-import type { MorningTime } from "../../src/lib/morning";
+import type { MorningKid, MorningTime } from "../../src/lib/morning";
 
-export interface MorningPreferences extends OutfitPreferences { fahrenheit: boolean; morningAdvice: boolean; morningTime: MorningTime }
+export interface MorningPreferences extends OutfitPreferences { fahrenheit: boolean; morningAdvice: boolean; morningTime: MorningTime; weatherAlerts: boolean; kid?: MorningKid }
 
 /** @returns {Promise<boolean>} Утренние уведомления есть только в Android-приложении. */
 export async function requestMorningAdvice(): Promise<boolean> { return false; }
@@ -13,4 +13,4 @@ export async function scheduleMorningAdvice(_forecast: Forecast, _preferences: M
 /** @returns {Promise<void>} Фоновое обновление есть только у Android-виджета. */
 export async function refreshMorningAdvice(_forecast: Forecast): Promise<void> {}
 /** @returns {void} На других платформах нажатий на уведомления нет. */
-export function useMorningAdviceOpen(_onOpen: () => void): void {}
+export function useMorningAdviceOpen(_onOpen: (kind: "morning" | "alert") => void): void {}

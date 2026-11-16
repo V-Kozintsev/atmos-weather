@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isMorningTime, morningMessage, morningSchedule } from "./morning";
+import { alertSchedule, isMorningTime, morningMessage, morningSchedule, weatherAlert } from "./morning";
 import type { Day, Forecast, Hour } from "./weather";
 
 /** @param {string} date - День. @param {number} feels - Ощущаемая температура днём. @param {Partial<Hour>} extra - Отличия часа. @returns {Hour[]} Часы с 00:00 до 23:00. */
@@ -43,6 +43,38 @@ describe("morning advice", () => {
     expect(schedule.map((item) => item.date)).toEqual(["2026-11-14", "2026-11-15"]);
     expect(new Date(schedule[0].at).getHours()).toBe(7);
     expect(new Date(schedule[0].at).getMinutes()).toBe(30);
+  });
+  it("warns an hour before afternoon rain starts", () => {
+    const hours = hoursFor("2026-11-20", 8).map((hour) => Number(hour.time.slice(11, 13)) >= 16 ? { ...hour, rain: 1.2, code: 61 } : hour);
+    const alert = weatherAlert({ ...forecast, hours, days: [dayFor("2026-11-20", 4, 9)] }, "2026-11-20", preferences);
+    expect(alert?.title).toBe("Около 16:00 начнётся дождь");
+    expect(new Date(alert!.at).getHours()).toBe(15);
+    expect(alert?.body).toContain("зонт");
+  });
+  it("calls snow by air temperature and skips rain that is already falling in the morning", () => {
+    const snow = hoursFor("2026-11-21", -4).map((hour) => ({ ...hour, temperature: -1, ...(Number(hour.time.slice(11, 13)) >= 13 ? { rain: 0.5, code: 61 } : {}) }));
+    expect(weatherAlert({ ...forecast, hours: snow }, "2026-11-21", preferences)?.title).toBe("Около 13:00 начнётся снег");
+    const allDay = hoursFor("2026-11-22", 5, { rain: 1, code: 61 });
+    expect(weatherAlert({ ...forecast, hours: allDay }, "2026-11-22", preferences)).toBeUndefined();
+  });
+  it("warns about a sharp evening drop at 15:00 and stays quiet on an even day", () => {
+    const drop = hoursFor("2026-11-23", 14).map((hour) => Number(hour.time.slice(11, 13)) >= 18 ? { ...hour, feels: 4 } : hour);
+    const alert = weatherAlert({ ...forecast, hours: drop }, "2026-11-23", preferences);
+    expect(alert?.title).toBe("К вечеру похолодает до 4° по ощущениям");
+    expect(new Date(alert!.at).getHours()).toBe(15);
+    expect(weatherAlert({ ...forecast, hours: hoursFor("2026-11-24", 10) }, "2026-11-24", preferences)).toBeUndefined();
+  });
+  it("schedules only future alerts", () => {
+    const hours = hoursFor("2026-11-14", 6).map((hour) => Number(hour.time.slice(11, 13)) >= 16 ? { ...hour, rain: 1, code: 61 } : hour);
+    const data = { ...forecast, hours, days: [dayFor("2026-11-14", 4, 8)] };
+    expect(alertSchedule(data, preferences, false, new Date(2026, 10, 14, 10, 0).getTime())).toHaveLength(1);
+    expect(alertSchedule(data, preferences, false, new Date(2026, 10, 14, 15, 30).getTime())).toHaveLength(0);
+  });
+  it("writes the morning advice for a child in kid mode", () => {
+    const message = morningMessage(forecast, "2026-11-13", preferences, false, { age: "preschool", plan: "garden" });
+    expect(message?.title).toBe("Москва: ребёнку сегодня 0°");
+    expect(message?.body).toContain("Демисезонный комбинезон");
+    expect(message?.body).toContain("С собой: запасные носки и колготки в шкафчик");
   });
   it("accepts only offered times", () => {
     expect(isMorningTime("07:30")).toBe(true);

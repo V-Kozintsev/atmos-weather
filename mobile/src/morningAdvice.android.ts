@@ -2,15 +2,17 @@ import * as Notifications from "expo-notifications";
 import { useEffect, useRef } from "react";
 import type { Forecast } from "../../src/lib/weather";
 import type { OutfitOccasion, OutfitPreferences, WarmthPreference } from "../../src/lib/outfit";
-import { defaultMorningTime, isMorningTime, morningSchedule, type MorningTime } from "../../src/lib/morning";
+import { alertSchedule, defaultMorningTime, isMorningTime, morningSchedule, type MorningKid, type MorningTime } from "../../src/lib/morning";
+import { kidAgeLabels, kidPlanLabels, type KidAge, type KidPlan } from "../../src/lib/kids";
 import { read } from "./storage";
 import { activeComfortOffset, type ComfortHistory } from "./comfortPolicy";
 import { log } from "./weather";
 
-export interface MorningPreferences extends OutfitPreferences { fahrenheit: boolean; morningAdvice: boolean; morningTime: MorningTime }
+export interface MorningPreferences extends OutfitPreferences { fahrenheit: boolean; morningAdvice: boolean; morningTime: MorningTime; weatherAlerts: boolean; kid?: MorningKid }
 
 const channelId = "morning-advice";
 const prefix = "morning-advice-";
+const alertPrefix = "weather-alert-";
 let handledResponse = "";
 
 Notifications.setNotificationHandler({
@@ -44,7 +46,7 @@ export async function requestMorningAdvice(): Promise<boolean> {
 /** @returns {Promise<void>} Снимает только утренние советы приложения. */
 export async function cancelMorningAdvice(): Promise<void> {
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-  await Promise.all(scheduled.filter((item) => item.identifier.startsWith(prefix)).map((item) => Notifications.cancelScheduledNotificationAsync(item.identifier)));
+  await Promise.all(scheduled.filter((item) => item.identifier.startsWith(prefix) || item.identifier.startsWith(alertPrefix)).map((item) => Notifications.cancelScheduledNotificationAsync(item.identifier)));
 }
 
 /** @param {Forecast} forecast - Последний прогноз выбранного города. @param {MorningPreferences} preferences - Включение, время и стиль. @returns {Promise<number>} Сколько утренних советов запланировано; каждый новый прогноз заменяет прежние тексты. */
@@ -54,10 +56,14 @@ export async function scheduleMorningAdvice(forecast: Forecast, preferences: Mor
     if (!preferences.morningAdvice) return 0;
     if (!(await Notifications.getPermissionsAsync()).granted) { log("morning advice blocked"); return 0; }
     await ensureChannel();
-    const plan = morningSchedule(forecast, preferences.morningTime, preferences, preferences.fahrenheit, Date.now());
+    const now = Date.now();
+    const plan = [
+      ...morningSchedule(forecast, preferences.morningTime, preferences, preferences.fahrenheit, now, 3, preferences.kid).map((item) => ({ ...item, id: `${prefix}${item.date}` })),
+      ...(preferences.weatherAlerts ? alertSchedule(forecast, preferences, preferences.fahrenheit, now) : []).map((item) => ({ ...item, id: `${alertPrefix}${item.date}` })),
+    ];
     for (const item of plan) {
       await Notifications.scheduleNotificationAsync({
-        identifier: `${prefix}${item.date}`,
+        identifier: item.id,
         content: { title: item.title, body: item.body, data: { screen: "outfit" } },
         trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: item.at, channelId },
       });
@@ -80,21 +86,26 @@ export async function refreshMorningAdvice(forecast: Forecast): Promise<void> {
   await scheduleMorningAdvice(forecast, {
     gender: saved.gender === "woman" ? "woman" : "man", occasion, warmth,
     comfortOffset: activeComfortOffset(comfort, forecast.current.time.slice(0, 10)),
-    fahrenheit: saved.fahrenheit === true, morningAdvice: true,
+    fahrenheit: saved.fahrenheit === true, morningAdvice: true, weatherAlerts: saved.weatherAlerts !== false,
+    kid: saved.kidMode === true ? {
+      age: typeof saved.kidAge === "string" && saved.kidAge in kidAgeLabels ? saved.kidAge as KidAge : "preschool",
+      plan: typeof saved.kidPlan === "string" && saved.kidPlan in kidPlanLabels ? saved.kidPlan as KidPlan : "garden",
+    } : undefined,
     morningTime: isMorningTime(saved.morningTime) ? saved.morningTime : defaultMorningTime,
   });
 }
 
-/** @param {() => void} onOpen - Переход к комплекту. @returns {void} Открывает «Что надеть» после нажатия на утренний совет, один раз на каждое уведомление. */
-export function useMorningAdviceOpen(onOpen: () => void): void {
+/** @param {(kind: "morning" | "alert") => void} onOpen - Переход к комплекту. @returns {void} Открывает «Что надеть» после нажатия на утренний совет или предупреждение, один раз на каждое уведомление. */
+export function useMorningAdviceOpen(onOpen: (kind: "morning" | "alert") => void): void {
   const response = Notifications.useLastNotificationResponse();
   const callback = useRef(onOpen);
   callback.current = onOpen;
   useEffect(() => {
     if (!response || response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
-    const key = `${response.notification.request.identifier}:${response.notification.date}`;
-    if (!response.notification.request.identifier.startsWith(prefix) || key === handledResponse) return;
+    const id = response.notification.request.identifier;
+    const key = `${id}:${response.notification.date}`;
+    if (!(id.startsWith(prefix) || id.startsWith(alertPrefix)) || key === handledResponse) return;
     handledResponse = key;
-    callback.current();
+    callback.current(id.startsWith(alertPrefix) ? "alert" : "morning");
   }, [response]);
 }
