@@ -10,9 +10,9 @@ for (const key of ["ATMOS_KEYSTORE", "ATMOS_STORE_PASSWORD", "ATMOS_KEY_ALIAS", 
   if (!env[key]) throw new Error(`Missing ${key}; release must use the existing signing key`);
 }
 
-/** @param {string} command - Исполняемый файл. @param {string[]} args - Аргументы без секретов. @param {string} cwd - Рабочая папка. @returns {void} Выполняет шаг сборки и прекращает работу при ошибке. */
-function run(command, args, cwd) {
-  const result = spawnSync(command, args, { cwd, env, stdio: "inherit", windowsHide: true });
+/** @param {string} command - Исполняемый файл. @param {string[]} args - Аргументы без секретов. @param {string} cwd - Рабочая папка. @param {boolean} verbatim - Передать строку cmd.exe без экранирования Node. @returns {void} Выполняет шаг сборки и прекращает работу при ошибке. */
+function run(command, args, cwd, verbatim = false) {
+  const result = spawnSync(command, args, { cwd, env, stdio: "inherit", windowsHide: true, windowsVerbatimArguments: verbatim });
   if (result.error) throw result.error;
   if (result.status !== 0) process.exit(result.status || 1);
 }
@@ -23,6 +23,9 @@ rmSync(path.join(root, "android/build/generated/autolinking/autolinking.json"), 
 const task = store === "google-play" ? ":app:bundleRelease" : ":app:assembleRelease";
 // RuStore получает один общий APK: библиотеки x86 нужны только эмуляторам и добавляют около 34 МБ.
 // AAB для Google Play собирается со всеми ABI — магазин сам отдаёт устройству нужную часть.
-const architectures = store === "rustore" ? " -PreactNativeArchitectures=armeabi-v7a,arm64-v8a" : "";
-if (process.platform === "win32") run("cmd.exe", ["/d", "/s", "/c", `gradlew.bat ${task}${architectures} --no-daemon`], path.join(root, "android"));
-else run("./gradlew", [task, ...architectures.trim().split(" ").filter(Boolean), "--no-daemon"], path.join(root, "android"));
+const gradleArgs = [task, ...(store === "rustore" ? ["-PreactNativeArchitectures=armeabi-v7a,arm64-v8a"] : []), "--no-daemon"];
+const android = path.join(root, "android");
+// Полный путь: при NoDefaultCurrentDirectoryInExePath cmd.exe не ищет gradlew.bat в текущей папке.
+// Кавычки защищают запятую в списке архитектур от разбора cmd.
+if (process.platform === "win32") run("cmd.exe", ["/d", "/s", "/c", `"${[path.join(android, "gradlew.bat"), ...gradleArgs].map((arg) => `"${arg}"`).join(" ")}"`], android, true);
+else run("./gradlew", gradleArgs, android);
