@@ -13,4 +13,5 @@ jobs:
       - run: npm --prefix mobile ci
       - run: npm run native:typecheck
       - run: npm test
+      - run: npm run test:publish
       - run: npm run build

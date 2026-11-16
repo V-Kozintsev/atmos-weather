@@ -20,7 +20,8 @@
     "native:android": "npm --prefix mobile run android",
     "native:typecheck": "npm --prefix mobile run typecheck",
     "dev:legacy": "vite --host 127.0.0.1 --port 9000",
-    "build:web": "npm run native:typecheck && node scripts/build-expo-web.mjs"
+    "build:web": "npm run native:typecheck && node scripts/build-expo-web.mjs",
+    "test:publish": "node --test mobile/scripts/publish-store.test.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

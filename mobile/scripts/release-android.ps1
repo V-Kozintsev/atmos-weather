@@ -3,7 +3,8 @@
 # Пароль можно взять из файла (-PasswordFile): один пароль для хранилища и ключа.
 # Секреты живут только в этом процессе и не попадают в логи или Git.
 # Запуск: pwsh -NoProfile -ExecutionPolicy Bypass -File mobile/scripts/release-android.ps1 [-KeystorePath <путь>] [-KeyAlias <alias>] [-PasswordFile <путь>]
-param([string]$OutDir, [string]$KeystorePath, [string]$KeyAlias, [string]$PasswordFile, [ValidateSet('rustore', 'google-play')][string[]]$Stores = @('rustore', 'google-play'))
+#         [-Publish [-Submit] [-Track alpha]] — после сборки выложить через API магазинов (store-assets/publish-api.md).
+param([string]$OutDir, [string]$KeystorePath, [string]$KeyAlias, [string]$PasswordFile, [ValidateSet('rustore', 'google-play')][string[]]$Stores = @('rustore', 'google-play'), [switch]$Publish, [switch]$Submit, [string]$Track = 'alpha')
 if ($KeystorePath) { $env:ATMOS_KEYSTORE = $KeystorePath }
 if ($KeyAlias) { $env:ATMOS_KEY_ALIAS = $KeyAlias }
 if ($PasswordFile) {
@@ -51,3 +52,14 @@ foreach ($build in $builds | Where-Object { $Stores -contains $_.Store }) {
 }
 Write-Host "`nГотово: $OutDir" -ForegroundColor Green
 Get-ChildItem -LiteralPath $OutDir -File | ForEach-Object { '{0,8:N1} МБ  {1}' -f ($_.Length / 1MB), $_.Name }
+
+if ($Publish) {
+  foreach ($build in $builds | Where-Object { $Stores -contains $_.Store }) {
+    Write-Host "`n=== Выкладка: $($build.Store) ===" -ForegroundColor Cyan
+    $publishArgs = @((Join-Path $mobile 'scripts\publish-store.cjs'), $build.Store, '--file', (Join-Path $OutDir $build.To))
+    if ($build.Store -eq 'google-play') { $publishArgs += @('--track', $Track) }
+    if ($Submit) { $publishArgs += '--submit' }
+    & node @publishArgs
+    if ($LASTEXITCODE -ne 0) { throw "Выкладка $($build.Store) завершилась с ошибкой $LASTEXITCODE" }
+  }
+}
