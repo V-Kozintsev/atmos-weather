@@ -159,3 +159,42 @@ test("RuStore keeps an existing draft unless asked and removes its own draft aft
   try { await assert.rejects(rustorePublish({ file, submit: true, replaceDraft: false }), /sensitive permissions/); } finally { stub.restore(); }
   assert.equal(stub.calls.at(-1).method, "DELETE");
 });
+
+test("RuStore --keep-draft uploads the APK into the console-edited draft and never deletes it", async () => {
+  const { file } = fixture();
+  const code = app.android.versionCode;
+  let stub = stubFetch([
+    ["POST", /\/public\/auth\/$/, { body: { code: "OK", body: { jwe: "jwe" } } }],
+    ["GET", /versionStatuses=DRAFT/, { body: { code: "OK", body: { content: [{ versionId: 31, versionName: null }] } } }],
+    ["POST", /\/version\/31\/apk\?isMainApk=true/, { body: { code: "OK", body: {} } }],
+    ["GET", /\/public\/v2\/application\/.*\/version\/31$/, { body: { code: "OK", body: { packages: [{ verCode: code }] } } }],
+    ["POST", /\/version\/31\/commit\?priorityUpdate=0$/, { body: { code: "OK", body: null } }],
+  ]);
+  try { await rustorePublish({ file, submit: true, replaceDraft: false, keepDraft: true }); } finally { stub.restore(); }
+  assert.ok(!stub.calls.some((call) => call.method === "POST" && /\/version$/.test(call.url)), "no new draft is created");
+  assert.match(stub.calls.at(-1).url, /\/version\/31\/commit/);
+  stub = stubFetch([
+    ["POST", /\/public\/auth\/$/, { body: { code: "OK", body: { jwe: "jwe" } } }],
+    ["GET", /versionStatuses=DRAFT/, { body: { code: "OK", body: { content: [{ versionId: 32 }] } } }],
+    ["POST", /\/version\/32\/apk/, { status: 400, body: { code: "ERROR", message: "bad apk" } }],
+  ]);
+  try { await assert.rejects(rustorePublish({ file, submit: true, replaceDraft: false, keepDraft: true }), /bad apk/); } finally { stub.restore(); }
+  assert.ok(!stub.calls.some((call) => call.method === "DELETE"), "the edited draft survives a failed upload");
+  stub = stubFetch([
+    ["POST", /\/public\/auth\/$/, { body: { code: "OK", body: { jwe: "jwe" } } }],
+    ["GET", /versionStatuses=DRAFT/, { body: { code: "OK", body: { content: [] } } }],
+  ]);
+  try { await assert.rejects(rustorePublish({ file, submit: false, replaceDraft: false, keepDraft: true }), /черновика нет/); } finally { stub.restore(); }
+});
+
+test("RuStore --no-apk creates an empty draft for console edits and uploads nothing", async () => {
+  const { file } = fixture();
+  const stub = stubFetch([
+    ["POST", /\/public\/auth\/$/, { body: { code: "OK", body: { jwe: "jwe" } } }],
+    ["GET", /versionStatuses=DRAFT/, { body: { code: "OK", body: { content: [] } } }],
+    ["POST", /\/version$/, { body: { code: "OK", body: 41 } }],
+  ]);
+  try { await rustorePublish({ file, submit: false, replaceDraft: false, noApk: true }); } finally { stub.restore(); }
+  assert.deepEqual(stub.calls.map((call) => call.method), ["POST", "GET", "POST"]);
+  await assert.rejects(rustorePublish({ file, submit: true, replaceDraft: false, noApk: true }), /только создаёт пустой черновик/);
+});

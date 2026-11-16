@@ -6,7 +6,7 @@
 //
 //   node mobile/scripts/publish-store.cjs check                      проверить доступ, ничего не меняя
 //   node mobile/scripts/publish-store.cjs google-play [--track alpha] [--file <aab>] [--submit]
-//   node mobile/scripts/publish-store.cjs rustore [--file <apk>] [--moder-info <текст>] [--replace-draft] [--submit]
+//   node mobile/scripts/publish-store.cjs rustore [--file <apk>] [--moder-info <текст>] [--no-apk | --keep-draft | --replace-draft] [--submit]
 //
 // Без --submit: Google Play проверяет правку и отменяет её, RuStore оставляет черновик с загруженным APK.
 // RuStore не принимает через API сборку с новым чувствительным разрешением — такую версию загружают в консоли.
@@ -207,23 +207,32 @@ async function rustoreCheck() {
   console.log(`RuStore: доступ есть. ${app.appName || packageName}: ${app.versionName} (${app.versionCode}), ${app.appStatus}.\n  ${versions.slice(0, 5).map((version) => `${version.versionName} (${version.versionCode}) — ${version.versionStatus}`).join("\n  ")}`);
 }
 
-/** @param {{ file: string, submit: boolean, replaceDraft: boolean, moderInfo?: string }} options - Сборка и режим. @returns {Promise<void>} Создаёт черновик с APK и отправляет на модерацию только с --submit. */
-async function rustorePublish({ file, submit, replaceDraft, moderInfo }) {
+/** @param {{ file: string, submit: boolean, replaceDraft: boolean, keepDraft?: boolean, noApk?: boolean, moderInfo?: string }} options - Сборка и режим. @returns {Promise<void>} Создаёт черновик с APK (пустой с --no-apk, или кладёт APK в существующий с --keep-draft) и отправляет на модерацию только с --submit. */
+async function rustorePublish({ file, submit, replaceDraft, keepDraft, noApk, moderInfo }) {
+  if (noApk && (keepDraft || submit)) throw new Error("RuStore: --no-apk только создаёт пустой черновик, без --keep-draft и --submit");
   const { packageName, versionCode, versionName } = appInfo();
   const whatsNew = formatNotes(releaseNotes(JSON.parse(fs.readFileSync(path.join(repo, "public", "app-releases.json"), "utf8")), versionCode), 5000);
   const token = await rustoreAuth();
   const drafts = await rustoreVersions(token, packageName, "DRAFT");
-  for (const draft of drafts) {
-    if (!replaceDraft) throw new Error(`RuStore: уже есть черновик ${draft.versionName || "без версии"} (id ${draft.versionId}). Отправьте или удалите его в консоли, либо запустите с --replace-draft`);
+  // Консоль не показывает APK, загруженный через API, и при сохранении черновика отвязывает его.
+  // Поэтому карточку (описание, теги, скриншоты) правят в консоли до загрузки, а APK кладут последним через --keep-draft.
+  const kept = keepDraft ? drafts[0] : undefined;
+  if (keepDraft && !kept) throw new Error("RuStore: черновика нет — запустите без --keep-draft, скрипт создаст новый");
+  for (const draft of kept ? [] : drafts) {
+    if (!replaceDraft) throw new Error(`RuStore: уже есть черновик ${draft.versionName || "без версии"} (id ${draft.versionId}). Отправьте или удалите его в консоли, запустите с --keep-draft, чтобы загрузить APK в него, либо с --replace-draft`);
     await rustore(token, "DELETE", `/public/v1/application/${packageName}/version/${draft.versionId}`, undefined, "RuStore: удаление старого черновика");
     console.log(`RuStore: удалён старый черновик id ${draft.versionId}`);
   }
-  const created = await rustore(token, "POST", `/public/v1/application/${packageName}/version`, {
+  const created = kept ? kept.versionId : await rustore(token, "POST", `/public/v1/application/${packageName}/version`, {
     json: { whatsNew, moderInfo: (moderInfo || "Без регистрации. Изменения перечислены в «Что нового».").slice(0, 180), publishType: "INSTANTLY", partialValue: 100 },
   }, "RuStore: создание черновика");
   const versionId = typeof created === "number" ? created : created && created.versionId;
   if (!versionId) throw new Error("RuStore: не получил id черновика");
-  let done = false;
+  let done = Boolean(kept); // чужой черновик с правками карточки при ошибке не удаляем
+  if (noApk) {
+    console.log(`RuStore: пустой черновик id ${versionId} создан. Поправьте карточку в консоли, нажмите «Сохранить как черновик», затем запустите rustore --keep-draft --submit.`);
+    return;
+  }
   try {
     const size = fs.statSync(file).size;
     console.log(`RuStore: черновик id ${versionId}, загружаю ${path.basename(file)} (${(size / 1048576).toFixed(1)} МБ)…`);
@@ -234,7 +243,8 @@ async function rustorePublish({ file, submit, replaceDraft, moderInfo }) {
     const codes = ((detail && detail.packages) || []).map((item) => Number(item.verCode ?? item.versionCode));
     if (codes.length && !codes.includes(versionCode)) throw new Error(`RuStore: в черновике versionCode ${codes.join(", ")}, а в app.json ${versionCode}`);
     done = true;
-    if (!submit) { console.log(`RuStore: черновик ${versionName} с APK готов (id ${versionId}). Проверьте его в консоли или запустите с --submit.`); return; }
+    if (kept) console.log(`RuStore: APK загружен в существующий черновик id ${versionId}, его описание и скриншоты сохранены.`);
+    if (!submit) { console.log(`RuStore: черновик ${versionName} с APK готов (id ${versionId}). Не сохраняйте его в консоли: она отвяжет APK. Чтобы отправить, запустите с --replace-draft --submit.`); return; }
     await rustore(token, "POST", `/public/v1/application/${packageName}/version/${versionId}/commit?priorityUpdate=0`, undefined, "RuStore: отправка на модерацию");
     console.log(`RuStore: ${versionName} (${versionCode}) отправлена на модерацию, после одобрения опубликуется автоматически на 100%.`);
   } finally {
@@ -276,8 +286,8 @@ async function main(argv) {
     return;
   }
   if (command === "google-play") return googlePublish({ file: option("--file") || defaultArtifact("google-play"), track: option("--track") || "alpha", submit });
-  if (command === "rustore") return rustorePublish({ file: option("--file") || defaultArtifact("rustore"), submit, replaceDraft: rest.includes("--replace-draft"), moderInfo: option("--moder-info") });
-  console.log("Команды: check [rustore|google-play] · google-play [--track alpha] [--file <aab>] [--submit] · rustore [--file <apk>] [--moder-info <текст>] [--replace-draft] [--submit]");
+  if (command === "rustore") return rustorePublish({ file: option("--file") || defaultArtifact("rustore"), submit, replaceDraft: rest.includes("--replace-draft"), keepDraft: rest.includes("--keep-draft"), noApk: rest.includes("--no-apk"), moderInfo: option("--moder-info") });
+  console.log("Команды: check [rustore|google-play] · google-play [--track alpha] [--file <aab>] [--submit] · rustore [--file <apk>] [--moder-info <текст>] [--no-apk | --keep-draft | --replace-draft] [--submit]");
   process.exitCode = 1;
 }
 
