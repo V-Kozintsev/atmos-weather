@@ -3,7 +3,7 @@
 # Пароль можно взять из файла (-PasswordFile): один пароль для хранилища и ключа.
 # Секреты живут только в этом процессе и не попадают в логи или Git.
 # Запуск: pwsh -NoProfile -ExecutionPolicy Bypass -File mobile/scripts/release-android.ps1 [-KeystorePath <путь>] [-KeyAlias <alias>] [-PasswordFile <путь>]
-param([string]$OutDir, [string]$KeystorePath, [string]$KeyAlias, [string]$PasswordFile)
+param([string]$OutDir, [string]$KeystorePath, [string]$KeyAlias, [string]$PasswordFile, [ValidateSet('rustore', 'google-play')][string[]]$Stores = @('rustore', 'google-play'))
 if ($KeystorePath) { $env:ATMOS_KEYSTORE = $KeystorePath }
 if ($KeyAlias) { $env:ATMOS_KEY_ALIAS = $KeyAlias }
 if ($PasswordFile) {
@@ -37,7 +37,11 @@ $builds = @(
   @{ Store = 'rustore'; From = 'android\app\build\outputs\apk\release\app-release.apk'; To = "Pogoda-i-chto-nadet-$version-rustore.apk" },
   @{ Store = 'google-play'; From = 'android\app\build\outputs\bundle\release\app-release.aab'; To = "Pogoda-i-chto-nadet-$version-google-play.aab" }
 )
-foreach ($build in $builds) {
+$first = $true
+foreach ($build in $builds | Where-Object { $Stores -contains $_.Store }) {
+  # Windows не сразу отпускает файлы прошлой сборки; без паузы prebuild падает с EBUSY при очистке android/.
+  if (-not $first) { Start-Sleep -Seconds 20 }
+  $first = $false
   Write-Host "`n=== $($build.Store) ===" -ForegroundColor Cyan
   $artifact = Join-Path $mobile $build.From
   Remove-Item -LiteralPath $artifact -ErrorAction SilentlyContinue
