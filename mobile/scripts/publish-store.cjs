@@ -18,6 +18,11 @@ const crypto = require("node:crypto");
 const repo = path.resolve(__dirname, "..", "..");
 const releaseRoot = path.join(os.homedir(), "Documents", "Atmos Release");
 
+/** @returns {string} Корневой сертификат Минцифры, которым подписан public-api-m.rustore.ru; доверие к нему действует только в процессе этого скрипта. */
+function caFile() {
+  return process.env.ATMOS_EXTRA_CA_FILE || path.join(releaseRoot, "russian_trusted_root_ca.pem");
+}
+
 /** @returns {{ packageName: string, versionCode: number, versionName: string }} Данные выпуска из app.json. */
 function appInfo() {
   const { expo } = JSON.parse(fs.readFileSync(path.join(repo, "mobile", "app.json"), "utf8"));
@@ -46,7 +51,7 @@ function formatNotes(notes, limit) {
 /** @param {string} file - Путь к файлу ключа. @param {string} label - Название для сообщений. @returns {object} Разобранный JSON без вывода содержимого. */
 function readKey(file, label) {
   if (!fs.existsSync(file)) throw new Error(`Нет файла ключа ${label}: ${file}. Инструкция — store-assets/publish-api.md`);
-  try { return JSON.parse(fs.readFileSync(file, "utf8")); }
+  try { return JSON.parse(fs.readFileSync(file, "utf8").replace(/^﻿/, "")); }
   catch { throw new Error(`Файл ключа ${label} не является корректным JSON: ${file}`); }
 }
 
@@ -172,7 +177,14 @@ async function rustoreAuth() {
 /** @param {string | undefined} token - Public-Token. @param {string} method - HTTP-метод. @param {string} url - Путь API. @param {{ json?: object, form?: FormData }} payload - Тело запроса. @param {string} step - Шаг. @returns {Promise<any>} Поле body успешного ответа. */
 async function rustore(token, method, url, payload, step) {
   const headers = { ...(token ? { "Public-Token": token } : {}), ...(payload && payload.json ? { "content-type": "application/json" } : {}) };
-  const response = await fetch(`${rustoreApi}${url}`, { method, headers, body: payload ? payload.form || JSON.stringify(payload.json) : undefined });
+  let response;
+  try {
+    response = await fetch(`${rustoreApi}${url}`, { method, headers, body: payload ? payload.form || JSON.stringify(payload.json) : undefined });
+  } catch (error) {
+    const code = error && error.cause && error.cause.code;
+    if (code === "UNABLE_TO_GET_ISSUER_CERT_LOCALLY" || code === "SELF_SIGNED_CERT_IN_CHAIN") throw new Error(`${step}: сертификат RuStore выдан УЦ Минцифры, нужен файл ${caFile()} (store-assets/publish-api.md)`);
+    throw new Error(`${step}: нет соединения (${code || error.message})`);
+  }
   const result = await json(response, step);
   if (result.code && result.code !== "OK") throw new Error(`${step}: ${result.code} ${result.message || ""}`.trim());
   return result.body;
@@ -254,7 +266,11 @@ async function main(argv) {
     const checks = [only !== "rustore" && ["Google Play", googleCheck], only !== "google-play" && ["RuStore", rustoreCheck]].filter(Boolean);
     let failed = 0;
     for (const [label, check] of checks) {
-      try { await check(); } catch (error) { failed++; console.error(`${label}: ${error.message}`); }
+      try { await check(); }
+      catch (error) {
+        if (!only && /^Нет файла ключа/.test(error.message)) { console.log(`${label}: не настроен — ${error.message}`); continue; }
+        failed++; console.error(`${label}: ${error.message}`);
+      }
     }
     if (failed) process.exitCode = 1;
     return;
@@ -266,4 +282,12 @@ async function main(argv) {
 }
 
 module.exports = { releaseNotes, formatNotes, googleJwt, rustoreTimestamp, rustoreSignature, googlePublish, rustorePublish, googleCheck, rustoreCheck };
-if (require.main === module) main(process.argv.slice(2)).catch((error) => { console.error(error.message); process.exit(1); });
+if (require.main === module) {
+  // Node читает дополнительные корневые сертификаты только при запуске, поэтому скрипт перезапускает себя с ними.
+  if (!process.env.NODE_EXTRA_CA_CERTS && fs.existsSync(caFile())) {
+    const { spawnSync } = require("node:child_process");
+    const child = spawnSync(process.execPath, [__filename, ...process.argv.slice(2)], { stdio: "inherit", env: { ...process.env, NODE_EXTRA_CA_CERTS: caFile() } });
+    process.exit(child.status ?? 1);
+  }
+  main(process.argv.slice(2)).catch((error) => { console.error(error.message); process.exit(1); });
+}
